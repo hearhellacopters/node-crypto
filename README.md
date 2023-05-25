@@ -48,11 +48,15 @@ const MISTY1 = NodeCrypto.MISTY1;
 All encryptions follow the same format. Use ```cipher.set_key``` then ```cipher.set_iv``` for **CBC** mode. If ```cipher.set_iv``` is not set, runs in **ECB** mode.
 
 ```sh
+ - encrypt:
 const cipher = new Blowfish;
 cipher.set_key(UInt8ArrayOrBufferKey);
 cipher.set_iv(UInt8ArrayOrBufferIV);
 const CipherText = cipher.encrypt(UInt8ArrayOrBufferText);
 --
+ - decrypt
+const cipher = new Blowfish;
+cipher.set_key(UInt8ArrayOrBufferKey);
 cipher.set_iv(UInt8ArrayOrBufferIV);
 const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
 ```
