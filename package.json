@@ -1,0 +1,38 @@
+{
+  "name": "node-crypto",
+  "version": "1.0.0",
+  "description": "Portable Crypto libraries for Node and Browsers",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hearhellacopters/node-crypto.git"
+  },
+  "keywords": [
+    "encrypt",
+    "encryption",
+    "decryption",
+    "crypto",
+    "AES",
+    "BLOWFISH",
+    "CAMELLIA",
+    "CAST128",
+    "IDEA",
+    "MARS",
+    "MISTY1",
+    "SEED",
+    "SERPENT",
+    "TWOFISH"
+  ],
+  "author": "hearhellacopters",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hearhellacopters/node-crypto/issues"
+  },
+  "homepage": "https://github.com/hearhellacopters/node-crypto#readme"
+}
