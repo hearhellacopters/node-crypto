@@ -1,4 +1,4 @@
-# node-crypto
+# encryption-for-node
 
 10 vanilla JavaScript, 0 dependencies portable encryption libraries.
 Great for **Node** servers or **Browsers**.
@@ -18,7 +18,7 @@ Great for **Node** servers or **Browsers**.
 
 ## Installation
 
-```npm install node-crypto```
+```npm install encryption-for-node```
 
 ## Features
 
@@ -32,14 +32,14 @@ Great for **Node** servers or **Browsers**.
 
 ```sh
 - For Node:
-const Blowfish = require('node-crypto/lib/BLOWFISH');
-const {CAST128} = require('node-crypto');
-const NodeCrypto = require('node-crypto');
+const Blowfish = require('encryption-for-node/lib/BLOWFISH');
+const {CAST128} = require('encryption-for-node');
+const NodeCrypto = require('encryption-for-node');
 const MISTY1 = NodeCrypto.MISTY1;
 - For Browser:
-import Blowfish from 'node-crypto/lib/BLOWFISH';
-import {CAST128} from 'node-crypto';
-import NodeCrypto from 'node-crypto';
+import Blowfish from 'encryption-for-node/lib/BLOWFISH';
+import {CAST128} from 'encryption-for-node';
+import NodeCrypto from 'encryption-for-node';
 const MISTY1 = NodeCrypto.MISTY1;
 ```
 
