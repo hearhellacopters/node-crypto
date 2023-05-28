@@ -13,9 +13,6 @@
     "type": "git",
     "url": "git+https://github.com/hearhellacopters/node-crypto.git"
   },
-  "publishConfig": {
-    "registry": "https://github.com/hearhellacopters/node-crypto"
-  },
   "keywords": [
     "encrypt",
     "encryption",
