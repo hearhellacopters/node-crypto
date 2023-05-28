@@ -53,7 +53,6 @@ const cipher = new Blowfish;
 cipher.set_key(UInt8ArrayOrBufferKey);
 cipher.set_iv(UInt8ArrayOrBufferIV);
 const CipherText = cipher.encrypt(UInt8ArrayOrBufferText);
---
  - decrypt
 const cipher = new Blowfish;
 cipher.set_key(UInt8ArrayOrBufferKey);
