@@ -1,6 +1,6 @@
 {
   "name": "encryption-for-node",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Portable Crypto libraries for Node and Browsers",
   "main": "index.js",
   "directories": {
