@@ -84,6 +84,7 @@ const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
 |Serpent    |16, 24 or 32 byte key     |16 byte IV |
 |SM4        |16 byte key               |16 byte IV |
 |TWOFISH    |16 byte key               |16 byte IV |
+
 *key must be reset after each use
 
 ## License
