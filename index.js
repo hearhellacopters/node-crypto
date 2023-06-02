@@ -8,6 +8,10 @@ const MISTY1 = require('./lib/MISTY1')
 const SEED = require('./lib/SEED')
 const SERPENT = require('./lib/SERPENT')
 const TWOFISH = require('./lib/TWOFISH')
+const CHACHA20 = require('./lib/CHACHA20')
+const ARIA = require('./lib/ARIA')
+const DES3 = require('./lib/DES3')
+const SM4 = require('./lib/SM4')
 module.exports = {
     AES,
     BLOWFISH,
@@ -18,5 +22,9 @@ module.exports = {
     MISTY1,
     SEED,
     SERPENT,
-    TWOFISH
+    TWOFISH,
+    CHACHA20,
+    ARIA,
+    DES3,
+    SM4
 }

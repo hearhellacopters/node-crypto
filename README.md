@@ -1,19 +1,23 @@
 # encryption-for-node
 
-10 vanilla JavaScript, 0 dependencies portable encryption libraries.
+14 vanilla JavaScript, 0 dependencies portable encryption libraries.
 Great for **Node** servers or **Browsers**.
 
 ## Encryptions
 
 - AES
+- Aria
 - Blowfish
 - Camellia
 - Cast128
+- ChaCha20
+- Triple DES
 - IDEA
 - MARS
 - MISTY1
 - SEED
 - Serpent
+- SM4
 - Twofish
 
 ## Installation
@@ -60,22 +64,27 @@ cipher.set_iv(UInt8ArrayOrBufferIV);
 const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
 ```
 
-**Note:** Once an encryption is setup with a key, you can run it as many times as you want, but it does need the IV reset for CBC mode before each use.
+**Note:** Most encryptions once setup with a key can be run multiple times, but need their IV reset for CBC mode before each use.
 
 ## Tech
 
-|Encryption |Key Length            |IV Length |
-| :---      |    :----:            |  :---    |
-|AES        |16, 24 or 32 byte key |16 byte IV|
-|Blowfish   |Up to 56 byte key     |8 byte IV |
-|Camellia   |16, 24 or 32 byte key |16 byte IV|
-|CAST128    |16 byte key           |8 byte IV |
-|IDEA       |16 byte key           |8 byte IV |
-|MARS       |16, 24 or 32 byte key |16 byte IV|
-|MISTY1     |16 byte key           |8 byte IV |
-|SEED       |16 byte key           |16 byte IV|
-|Serpent    |16, 24 or 32 byte key |16 byte IV|
-|TWOFISH    |16 byte key           |16 byte IV|
+|Encryption |Key Length                |IV Length  |
+| :---      |    :----:                |  :---     |
+|AES        |16, 24 or 32 byte key     |16 byte IV |
+|Aria       |16, 24 or 32 byte key     |same as key|
+|Blowfish   |Up to 56 byte key         |8 byte IV  |
+|Camellia   |16, 24 or 32 byte key     |16 byte IV |
+|CAST128    |16 byte key               |8 byte IV  |
+|*ChaCha20  |32 byte key, 12 byte nonce|16 byte IV |
+|DES3       |8 byte key                |8 byte IV  |
+|IDEA       |16 byte key               |8 byte IV  |
+|MARS       |16, 24 or 32 byte key     |16 byte IV |
+|MISTY1     |16 byte key               |8 byte IV  |
+|SEED       |16 byte key               |16 byte IV |
+|Serpent    |16, 24 or 32 byte key     |16 byte IV |
+|SM4        |16 byte key               |16 byte IV |
+|TWOFISH    |16 byte key               |16 byte IV |
+*key must be reset after each use
 
 ## License
 
