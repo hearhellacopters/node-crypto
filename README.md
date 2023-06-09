@@ -30,7 +30,7 @@ Great for **Node** servers or **Browsers**.
 - Runs ECB or CBC modes
 - Accepts Buffers or UInt8 Arrays
 - Easily modifiable to fit any needs
-- Import all 10 or just the one you need
+- Import all 14 or just the one you need
 
 ## Require or Import
 
