@@ -36,15 +36,9 @@ Great for **Node** servers or **Browsers**.
 
 ```sh
 - For Node:
-const Blowfish = require('encryption-for-node/lib/BLOWFISH');
 const {CAST128} = require('encryption-for-node');
-const NodeCrypto = require('encryption-for-node');
-const MISTY1 = NodeCrypto.MISTY1;
 - For Browser:
-import Blowfish from 'encryption-for-node/lib/BLOWFISH';
 import {CAST128} from 'encryption-for-node';
-import NodeCrypto from 'encryption-for-node';
-const MISTY1 = NodeCrypto.MISTY1;
 ```
 
 ## Use
@@ -53,12 +47,12 @@ All encryptions follow the same format. Use ```cipher.set_key``` then ```cipher.
 
 ```sh
  - encrypt:
-const cipher = new Blowfish;
+const cipher = new Blowfish();
 cipher.set_key(UInt8ArrayOrBufferKey);
 cipher.set_iv(UInt8ArrayOrBufferIV);
 const CipherText = cipher.encrypt(UInt8ArrayOrBufferText);
  - decrypt
-const cipher = new Blowfish;
+const cipher = new Blowfish();
 cipher.set_key(UInt8ArrayOrBufferKey);
 cipher.set_iv(UInt8ArrayOrBufferIV);
 const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
@@ -71,17 +65,17 @@ const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
 |Encryption |Key Length                |IV Length  |
 | :---      |    :----:                |  :---     |
 |AES        |16, 24 or 32 byte key     |16 byte IV |
-|Aria       |16, 24 or 32 byte key     |same as key|
-|Blowfish   |Up to 56 byte key         |8 byte IV  |
-|Camellia   |16, 24 or 32 byte key     |16 byte IV |
+|ARIA       |16, 24 or 32 byte key     |same as key|
+|BLOWFISH   |Up to 56 byte key         |8 byte IV  |
+|CAMELLIA   |16, 24 or 32 byte key     |16 byte IV |
 |CAST128    |16 byte key               |8 byte IV  |
-|*ChaCha20  |32 byte key, 12 byte nonce|16 byte IV |
+|*CHACHA20  |32 byte key, 12 byte nonce|16 byte IV |
 |DES3       |8 byte key                |8 byte IV  |
 |IDEA       |16 byte key               |8 byte IV  |
 |MARS       |16, 24 or 32 byte key     |16 byte IV |
 |MISTY1     |16 byte key               |8 byte IV  |
 |SEED       |16 byte key               |16 byte IV |
-|Serpent    |16, 24 or 32 byte key     |16 byte IV |
+|SERPENT    |16, 24 or 32 byte key     |16 byte IV |
 |SM4        |16 byte key               |16 byte IV |
 |TWOFISH    |16 byte key               |16 byte IV |
 
