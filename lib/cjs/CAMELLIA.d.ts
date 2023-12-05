@@ -102,7 +102,7 @@ export declare class CAMELLIA {
      * @param {number} padd - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in: Buffer | Uint8Array, padd: number): Uint8Array | Buffer;
+    encrypt(data_in: Buffer | Uint8Array, padd?: number): Uint8Array | Buffer;
     /**
      *
      * If IV is not set, runs in ECB mode.

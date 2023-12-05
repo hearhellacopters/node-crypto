@@ -1,6 +1,6 @@
 {
   "name": "encryption-for-node",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Portable Crypto libraries for Node and Browsers",
   "module": "lib/esm/index.mjs",
   "main": "lib/cjs/index.js",
@@ -8,7 +8,7 @@
     "lib"
   ],
   "scripts": {
-    "clean": "rmdir /s lib",
+    "clean": "rmdir /S /Q lib",
     "build": "npm run clean && npm run build:esm && npm run move && npm run build:cjs",
     "build:esm": "tsc --module esnext --outDir lib/esm",
     "move": "cd ./lib/esm/ && ren index.js index.mjs && cd ../../",

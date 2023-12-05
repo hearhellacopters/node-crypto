@@ -569,7 +569,7 @@ export class BLOWFISH {
      * @param {number} padd - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd:number):Buffer|Uint8Array {
+    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
         if(!isBufferOrUint8Array(data_in)){
             throw Error("Data must be Buffer or Uint8Array");
         }

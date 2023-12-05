@@ -111,7 +111,7 @@ export declare class TWOFISH {
      * @param {Number} padd - ```Number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in: Buffer | Uint8Array, padd: number): Buffer | Uint8Array;
+    encrypt(data_in: Buffer | Uint8Array, padd?: number): Buffer | Uint8Array;
     /**
      *
      * If IV is not set, runs in ECB mode.
