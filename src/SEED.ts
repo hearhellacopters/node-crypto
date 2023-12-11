@@ -14,7 +14,7 @@ import {
     BYTE1,
     BYTE,
     __PAIR64__
-} from './common'
+} from './common.js'
 
 /**
  * SEED encryption.

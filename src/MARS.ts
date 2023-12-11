@@ -8,7 +8,7 @@ import {
     writeUInt32LE,
     rotl,
     rotr
-} from './common'
+} from './common.js'
 
 //hack for 64bit processors
 function multiplyInt(a:number, b:number):number {

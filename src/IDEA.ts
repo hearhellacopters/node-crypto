@@ -6,7 +6,7 @@ import {
     xor,
     readUInt16BE,
     writeUInt16BE
-} from './common'
+} from './common.js'
 
 function rotl(a:number, b:number):number {
     return ((a >>> (32 - (b & 31))) | (a << (b & 31))) >>> 0

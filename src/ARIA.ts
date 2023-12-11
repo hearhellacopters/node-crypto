@@ -4,7 +4,7 @@ import {
     extendUint8Array,
     concatenateUint8Arrays,
     xor
-} from './common'
+} from './common.js'
 
 /**
  * ARIA 128 / 192 / 256 encryption.

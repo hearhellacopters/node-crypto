@@ -7,7 +7,7 @@ import {
     readUInt32LE,
     writeUInt32LE,
     xor_switch
-} from './common'
+} from './common.js'
 
 function bswap64(x:Uint8Array|Buffer):Uint8Array|Buffer {
     var new_buffer = new Uint8Array([x[3], x[2], x[1], x[0], x[7], x[6], x[5], x[4]])

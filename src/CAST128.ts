@@ -14,7 +14,7 @@ import {
     BYTE2,
     BYTE1,
     BYTE
-} from './common'
+} from './common.js'
 
 /**
  * CAST128 encryption.

@@ -8,7 +8,7 @@ import {
     readUInt32LE,
     rotl,
     rotr
-} from './common'
+} from './common.js'
 
 /**
  * Serpent encryption.

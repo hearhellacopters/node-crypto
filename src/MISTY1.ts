@@ -6,7 +6,7 @@ import {
     xor,
     readUInt16LE,
     writeUInt16LE
-} from './common'
+} from './common.js'
 
 const ShortSwitch = (a1:number):number => {
     const value1 = (a1 >> 8) & 0xff;
