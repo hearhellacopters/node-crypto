@@ -1,6 +1,6 @@
 # encryption-for-node
 
-14 vanilla JavaScript, 0 dependencies portable encryption libraries.
+14 vanilla TypeScript, 0 dependencies portable encryption libraries.
 Great for **Node** servers or **Browsers**.
 
 ## Encryptions
@@ -26,39 +26,41 @@ Great for **Node** servers or **Browsers**.
 
 ## Features
 
-- Barebones, small size, no bulk encryption methods
-- Runs ECB or CBC modes
-- Accepts Buffers or UInt8 Arrays
-- Easily modifiable to fit any needs
-- Import all 14 or just the one you need
+- Barebones, small size, no bulk encryption methods.
+- Runs ECB or CBC modes.
+- Static or PKCS padding.
+- Accepts ``Buffer`` or ``Uint8Array``. Returns the same type.
+- Easily modifiable to fit any needs.
 
 ## Require or Import
 
-```sh
-- For Node:
+```javascript
+//For Node:
 const {CAST128} = require('encryption-for-node');
-- For Browser:
+//For Browser:
 import {CAST128} from 'encryption-for-node';
 ```
 
 ## Use
 
-All encryptions follow the same format. Use ```cipher.set_key``` then ```cipher.set_iv``` for **CBC** mode. If ```cipher.set_iv``` is not set, runs in **ECB** mode.
+All encryptions classes follow the same format. Use ```cipher.set_key``` then ```cipher.set_iv``` for **CBC** mode. If ```cipher.set_iv``` is not set, runs in **ECB** mode. If static padding number is not set, uses PKCS padding on last block if needed.
 
-```sh
- - encrypt:
+```javascript
+//encrypt:
 const cipher = new Blowfish();
-cipher.set_key(UInt8ArrayOrBufferKey);
-cipher.set_iv(UInt8ArrayOrBufferIV);
-const CipherText = cipher.encrypt(UInt8ArrayOrBufferText);
- - decrypt
+cipher.set_key(Uint8ArrayOrBufferKey);
+cipher.set_iv(Uint8ArrayOrBufferIV);
+var paddingNumber = 0xFF; //If padding number is not set, uses PKCS padding.
+const CipherText = cipher.encrypt(Uint8ArrayOrBufferText, paddingNumber);
+//decrypt
 const cipher = new Blowfish();
-cipher.set_key(UInt8ArrayOrBufferKey);
-cipher.set_iv(UInt8ArrayOrBufferIV);
-const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext);
+cipher.set_key(Uint8ArrayOrBufferKey);
+cipher.set_iv(Uint8ArrayOrBufferIV);
+var paddingNumberOrTrue = 0xFF; //Will check the last block and remove if padded is ``number``. Will remove PKCS if ``true``.
+const DecryptedUInt8ArrayOrBuffer = cipher.decrypt(ciphertext, paddingNumberOrTrue);
 ```
 
-**Note:** Most encryptions once setup with a key can be run multiple times, but need their IV reset for CBC mode before each use.
+**Note:** Most encryptions can be run multiple times once setup with a key. IV will need to be reset for CBC mode before each use.
 
 ## Tech
 

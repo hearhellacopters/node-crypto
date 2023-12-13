@@ -4,6 +4,8 @@ import {
     extendUint8Array,
     concatenateUint8Arrays,
     xor,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -55,62 +57,62 @@ import {
  * ```
  */
 export class SM4 {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
+    private previous_block: any;
 
     private ROUND = 32;
-    private round_key:any;
+    private round_key: any;
 
     constructor() {
     }
-    
+
     private SBOX = new Uint8Array(
-        [214, 144, 233, 254, 204, 225, 61,  183, 22,  182, 20,  194, 40,  251, 44,  5, 
-            43,  103, 154, 118, 42,  190, 4,   195, 170, 68,  19,  38,  73,  134, 6,   153,
-            156, 66,  80,  244, 145, 239, 152, 122, 51,  84,  11,  67,  237, 207, 172, 98, 
-            228, 179, 28,  169, 201, 8,   232, 149, 128, 223, 148, 250, 117, 143, 63,  166, 
-            71,  7,   167, 252, 243, 115, 23,  186, 131, 89,  60,  25,  230, 133, 79,  168, 
-            104, 107, 129, 178, 113, 100, 218, 139, 248, 235, 15,  75,  112, 86,  157, 53, 
-            30,  36,  14,  94,  99,  88,  209, 162, 37,  34,  124, 59,  1,   33,  120, 135,
-            212, 0,   70,  87,  159, 211, 39,  82,  76,  54,  2,   231, 160, 196, 200, 158, 
-            234, 191, 138, 210, 64,  199, 56,  181, 163, 247, 242, 206, 249, 97,  21,  161, 
-            224, 174, 93,  164, 155, 52,  26,  85,  173, 147, 50,  48,  245, 140, 177, 227, 
-            29,  246, 226, 46,  130, 102, 202, 96,  192, 41,  35,  171, 13,  83,  78,  111, 
-            213, 219, 55,  69,  222, 253, 142, 47,  3,   255, 106, 114, 109, 108, 91,  81, 
-            141, 27,  175, 146, 187, 221, 188, 127, 17,  217, 92,  65,  31,  16,  90,  216, 
-            10,  193, 49,  136, 165, 205, 123, 189, 45,  116, 208, 18,  184, 229, 180, 176, 
-            137, 105, 151, 74,  12,  150, 119, 126, 101, 185, 241, 9,   197, 110, 198, 132, 
-            24,  240, 125, 236, 58,  220, 77,  32,  121, 238, 95,  62,  215, 203, 57,  72]
+        [214, 144, 233, 254, 204, 225, 61, 183, 22, 182, 20, 194, 40, 251, 44, 5,
+            43, 103, 154, 118, 42, 190, 4, 195, 170, 68, 19, 38, 73, 134, 6, 153,
+            156, 66, 80, 244, 145, 239, 152, 122, 51, 84, 11, 67, 237, 207, 172, 98,
+            228, 179, 28, 169, 201, 8, 232, 149, 128, 223, 148, 250, 117, 143, 63, 166,
+            71, 7, 167, 252, 243, 115, 23, 186, 131, 89, 60, 25, 230, 133, 79, 168,
+            104, 107, 129, 178, 113, 100, 218, 139, 248, 235, 15, 75, 112, 86, 157, 53,
+            30, 36, 14, 94, 99, 88, 209, 162, 37, 34, 124, 59, 1, 33, 120, 135,
+            212, 0, 70, 87, 159, 211, 39, 82, 76, 54, 2, 231, 160, 196, 200, 158,
+            234, 191, 138, 210, 64, 199, 56, 181, 163, 247, 242, 206, 249, 97, 21, 161,
+            224, 174, 93, 164, 155, 52, 26, 85, 173, 147, 50, 48, 245, 140, 177, 227,
+            29, 246, 226, 46, 130, 102, 202, 96, 192, 41, 35, 171, 13, 83, 78, 111,
+            213, 219, 55, 69, 222, 253, 142, 47, 3, 255, 106, 114, 109, 108, 91, 81,
+            141, 27, 175, 146, 187, 221, 188, 127, 17, 217, 92, 65, 31, 16, 90, 216,
+            10, 193, 49, 136, 165, 205, 123, 189, 45, 116, 208, 18, 184, 229, 180, 176,
+            137, 105, 151, 74, 12, 150, 119, 126, 101, 185, 241, 9, 197, 110, 198, 132,
+            24, 240, 125, 236, 58, 220, 77, 32, 121, 238, 95, 62, 215, 203, 57, 72]
     );
 
     private CK = new Uint32Array(
-            [462357,      472066609,   943670861,   1415275113, 
-                1886879365,  -1936483679, -1464879427, -993275175, 
-                -521670923,  -66909679,   404694573,   876298825, 
-                1347903077,  1819507329,  -2003855715, -1532251463, 
-                -1060647211, -589042959,  -117504499,  337322537, 
-                808926789,   1280531041,  1752135293,  -2071227751, 
-                -1599623499, -1128019247, -656414995,  -184876535, 
-                269950501,   741554753,   1213159005,  1684763257]
+        [462357, 472066609, 943670861, 1415275113,
+            1886879365, -1936483679, -1464879427, -993275175,
+            -521670923, -66909679, 404694573, 876298825,
+            1347903077, 1819507329, -2003855715, -1532251463,
+            -1060647211, -589042959, -117504499, 337322537,
+            808926789, 1280531041, 1752135293, -2071227751,
+            -1599623499, -1128019247, -656414995, -184876535,
+            269950501, 741554753, 1213159005, 1684763257]
     );
 
-    private Rotl(x:number, y:number):number {
+    private Rotl(x: number, y: number): number {
         return x << y | x >>> (32 - y);
     };
 
-    private ByteSub(A:number):number {
+    private ByteSub(A: number): number {
         return (this.SBOX[A >>> 24 & 255] & 255) << 24 | (this.SBOX[A >>> 16 & 255] & 255) << 16 | (this.SBOX[A >>> 8 & 255] & 255) << 8 | (this.SBOX[A & 255] & 255);
     };
 
-    private L1(B:number):number {
+    private L1(B: number): number {
         return B ^ this.Rotl(B, 2) ^ this.Rotl(B, 10) ^ this.Rotl(B, 18) ^ this.Rotl(B, 24);
     };
 
-    private L2(B:number):number {
+    private L2(B: number): number {
         return B ^ this.Rotl(B, 13) ^ this.Rotl(B, 23);
     };
 
@@ -121,7 +123,7 @@ export class SM4 {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv (iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
             if (!isBufferOrUint8Array(iv)) {
                 throw Error("IV must be a buffer or UInt8Array");
@@ -145,7 +147,7 @@ export class SM4 {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
         }
@@ -157,11 +159,11 @@ export class SM4 {
         this.key_set = true
     }
 
-    private SM4Crypt(Input:Buffer|Uint8Array) {
+    private SM4Crypt(Input: Buffer | Uint8Array) {
         var rk = this.round_key
         var Output = new Uint8Array(16)
-        var r:number;
-        var mid:number;
+        var r: number;
+        var mid: number;
         var x = [0, 0, 0, 0];
         var tmp = [0, 0, 0, 0];
         for (var i = 0; i < 4; i++) {
@@ -203,11 +205,11 @@ export class SM4 {
         return Output
     };
 
-    private SM4KeyExt (CryptFlag:boolean):void {
+    private SM4KeyExt(CryptFlag: boolean): void {
         var Key = this.key
         var rk = this.round_key
-        var r:number;
-        var mid:number;
+        var r: number;
+        var mid: number;
         var x = [0, 0, 0, 0];
         var tmp = [0, 0, 0, 0];
         for (var i = 0; i < 4; i++) {
@@ -254,16 +256,18 @@ export class SM4 {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padd - ```Number```
+     * @param {Number} padding - ```Number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -271,12 +275,12 @@ export class SM4 {
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xff);
@@ -300,7 +304,7 @@ export class SM4 {
             }
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -309,17 +313,22 @@ export class SM4 {
         this.iv_set = false
         return final_buffer;
     };
-    
+
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -327,10 +336,17 @@ export class SM4 {
             throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -342,7 +358,7 @@ export class SM4 {
         this.round_key = new Uint32Array(this.ROUND);
         this.SM4KeyExt(true);
 
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             var block = data.subarray((index * block_size), (index + 1) * block_size);
             if (this.iv_set == true) {
                 if (this.previous_block != undefined) {
@@ -356,9 +372,22 @@ export class SM4 {
             if (this.iv_set == true) {
                 return_block = xor(return_block, this.iv);
             }
-            return_buff.push(return_block);
+
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
+
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {

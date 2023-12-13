@@ -7,7 +7,9 @@ import {
     writeUInt32LE,
     readUInt32LE,
     rotl,
-    rotr
+    rotr,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -60,23 +62,23 @@ import {
  */
 export class SERPENT {
 
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
+    private previous_block: any;
 
-    private r0:any;
-    private r1:any;
-    private r2:any;
-    private r3:any;
-    private r4:any;
-    private buffer:any;
+    private r0: any;
+    private r1: any;
+    private r2: any;
+    private r3: any;
+    private r4: any;
+    private buffer: any;
     constructor() {
     }
 
-    private SBOX0 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX0(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -116,7 +118,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX1(a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX1(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -157,7 +159,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX2 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX2(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -195,7 +197,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX3 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX3(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -236,7 +238,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX4 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX4(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -277,7 +279,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX5 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX5(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -319,7 +321,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX6 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX6(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -357,7 +359,7 @@ export class SERPENT {
         }
     };
 
-    private SBOX7 (a:number, b:number, c:number, d:number, usevalue?:boolean):void {
+    private SBOX7(a: number, b: number, c: number, d: number, usevalue?: boolean): void {
         if (!usevalue) {
             this.r0 = readUInt32LE(this.buffer, a);
             this.r1 = readUInt32LE(this.buffer, b);
@@ -406,13 +408,13 @@ export class SERPENT {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key (key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
-            }
+        }
         var keyLen = key.length;
         switch (keyLen) {
-            case 16: 
+            case 16:
                 break;
             case 24:
                 break;
@@ -438,7 +440,7 @@ export class SERPENT {
         }
         var key_loc = 0;
         var writer_pointer = 32;
-        let k:number;
+        let k: number;
         for (k = 0; k != 132; ++k) {
             var int_1 = readUInt32LE(this.buffer, key_loc + (k * 4));
             var int_2 = readUInt32LE(this.buffer, key_loc + 12 + (k * 4));
@@ -469,7 +471,7 @@ export class SERPENT {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv (iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
             if (!isBufferOrUint8Array(iv)) {
                 throw Error("IV must be a buffer or UInt8Array");
@@ -486,7 +488,7 @@ export class SERPENT {
         }
     };
 
-    private encrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private encrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         let start_chunk = block;
         if (this.iv_set == true) {
             start_chunk = xor(block, this.iv);
@@ -564,9 +566,9 @@ export class SERPENT {
         let v560 = 0; let v561 = 0; let v562 = 0; let v563 = 0; let v564 = 0; let v565 = 0; let v566 = 0; let v567 = 0;
         let v568 = 0;
 
-        let a = readUInt32LE(start_chunk, 0) ^  readUInt32LE(this.buffer, 32);
-        let b = readUInt32LE(start_chunk, 4) ^  readUInt32LE(this.buffer, 36);
-        let c = readUInt32LE(start_chunk, 8) ^  readUInt32LE(this.buffer, 40);
+        let a = readUInt32LE(start_chunk, 0) ^ readUInt32LE(this.buffer, 32);
+        let b = readUInt32LE(start_chunk, 4) ^ readUInt32LE(this.buffer, 36);
+        let c = readUInt32LE(start_chunk, 8) ^ readUInt32LE(this.buffer, 40);
         let d = readUInt32LE(start_chunk, 12) ^ readUInt32LE(this.buffer, 44);
 
         t3 = d ^ a ^ c;
@@ -1131,12 +1133,12 @@ export class SERPENT {
         v567 = v564 ^ readUInt32LE(this.buffer, (164 * 4) - 104);
         v568 = v562 ^ readUInt32LE(this.buffer, (165 * 4) - 104);
 
-        var out_blk:Buffer|Uint8Array;
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
             out_blk = new Uint8Array(16);
-        } 
+        }
         writeUInt32LE(out_blk, (v565 >>> 0), 0);
         writeUInt32LE(out_blk, (v566 >>> 0), 4);
         writeUInt32LE(out_blk, (v567 >>> 0), 8);
@@ -1148,7 +1150,7 @@ export class SERPENT {
         return out_blk;
     };
 
-    private decrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private decrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         let start_chunk = block
         if (this.iv_set == true) {
             if (this.previous_block != undefined) {
@@ -1230,9 +1232,9 @@ export class SERPENT {
         let v560 = 0; let resu = 0; let v562 = 0; let v563 = 0; let v564 = 0; let v565 = 0; let v566 = 0; let v567 = 0;
         let v568 = 0; let v569 = 0;
 
-        let a = readUInt32LE(start_chunk, 0) ^  readUInt32LE(this.buffer, (162 * 4) - 104)
-        let b = readUInt32LE(start_chunk, 4) ^  readUInt32LE(this.buffer, (163 * 4) - 104)
-        let c = readUInt32LE(start_chunk, 8) ^  readUInt32LE(this.buffer, (164 * 4) - 104)
+        let a = readUInt32LE(start_chunk, 0) ^ readUInt32LE(this.buffer, (162 * 4) - 104)
+        let b = readUInt32LE(start_chunk, 4) ^ readUInt32LE(this.buffer, (163 * 4) - 104)
+        let c = readUInt32LE(start_chunk, 8) ^ readUInt32LE(this.buffer, (164 * 4) - 104)
         let d = readUInt32LE(start_chunk, 12) ^ readUInt32LE(this.buffer, (165 * 4) - 104)
 
         v8 = b & a | c;
@@ -1241,10 +1243,10 @@ export class SERPENT {
         v11 = v10 ^ c;
         v12 = (v10 | ~(v9 ^ v8 ^ d)) ^ a;
         v13 = v11 ^ (v12 | d);
-        v14 = v13 ^ readUInt32LE(this.buffer,(158 * 4) - 104);
-        v15 = v12 ^ readUInt32LE(this.buffer,(159 * 4) - 104);
+        v14 = v13 ^ readUInt32LE(this.buffer, (158 * 4) - 104);
+        v15 = v12 ^ readUInt32LE(this.buffer, (159 * 4) - 104);
         v16 = readUInt32LE(this.buffer, (161 * 4) - 104) ^ v9 ^ v8;
-        v17 = rotr(readUInt32LE(this.buffer,(160 * 4) - 104) ^ v8 ^ (v9 ^ v8) & a ^ v12 ^ v13, 22);
+        v17 = rotr(readUInt32LE(this.buffer, (160 * 4) - 104) ^ v8 ^ (v9 ^ v8) & a ^ v12 ^ v13, 22);
         v18 = rotr(v14, 5);
         v19 = v17 ^ v16 ^ (v15 << 7);
         v20 = v18 ^ v16 ^ v15;
@@ -1259,10 +1261,10 @@ export class SERPENT {
         v29 = v23 & ~v26;
         v30 = v27 & v28 ^ v24 ^ v26;
         v31 = (v30 | v24) ^ v28;
-        v32 = v30 ^ readUInt32LE(this.buffer,(154 * 4) - 104) ^ (v31 | v24);
-        v33 = v28 ^ readUInt32LE(this.buffer,(155 * 4) - 104) ^ v27;
-        v34 = readUInt32LE(this.buffer,(156 * 4) - 104) ^ v29 ^ v27 ^ (v31 | v24);
-        v35 = v31 ^ readUInt32LE(this.buffer,(157 * 4) - 104);
+        v32 = v30 ^ readUInt32LE(this.buffer, (154 * 4) - 104) ^ (v31 | v24);
+        v33 = v28 ^ readUInt32LE(this.buffer, (155 * 4) - 104) ^ v27;
+        v34 = readUInt32LE(this.buffer, (156 * 4) - 104) ^ v29 ^ v27 ^ (v31 | v24);
+        v35 = v31 ^ readUInt32LE(this.buffer, (157 * 4) - 104);
         v36 = rotr(v34, 22);
         v37 = rotr(v32, 5);
         v38 = v36 ^ (v33 << 7) ^ v35;
@@ -1277,10 +1279,10 @@ export class SERPENT {
         v47 = v44 ^ ~v43 ^ v46 & v45;
         v48 = (v42 | v45) & v43;
         v49 = v46 & v45 | v45 ^ v44;
-        v50 = v44 ^ ~readUInt32LE(this.buffer,(150 * 4) - 104) ^ (v42 | v45) ^ (v47 | v43);
-        v51 = v46 ^  readUInt32LE(this.buffer,(151 * 4) - 104) ^ (v47 | v43) & v45;
-        v52 = v47 ^  readUInt32LE(this.buffer,(153 * 4) - 104);
-        v53 = rotr(v48 ^ readUInt32LE(this.buffer,(152 * 4) - 104) ^ v49, 22);
+        v50 = v44 ^ ~readUInt32LE(this.buffer, (150 * 4) - 104) ^ (v42 | v45) ^ (v47 | v43);
+        v51 = v46 ^ readUInt32LE(this.buffer, (151 * 4) - 104) ^ (v47 | v43) & v45;
+        v52 = v47 ^ readUInt32LE(this.buffer, (153 * 4) - 104);
+        v53 = rotr(v48 ^ readUInt32LE(this.buffer, (152 * 4) - 104) ^ v49, 22);
         v54 = rotr(v50, 5);
         v55 = v52 ^ v53 ^ (v51 << 7);
         v56 = v52 ^ v54 ^ v51;
@@ -1292,10 +1294,10 @@ export class SERPENT {
         v62 = v57 | v58;
         v63 = v61 ^ (v57 ^ v60) & (v57 | v58);
         v64 = v61 & v60 | v59;
-        v65 = v61 ^ readUInt32LE(this.buffer,(146 * 4) - 104) ^ (v63 ^ v59 | ~v60);
-        v66 = readUInt32LE(this.buffer,(147 * 4) - 104) ^ v59 ^ v57 ^ v61 & v60;
-        v67 = v63 ^ readUInt32LE(this.buffer,(149 * 4) - 104);
-        v68 = rotr(v62 ^ readUInt32LE(this.buffer,(148 * 4) - 104) ^ v64 ^ (v63 | ~v60), 22);
+        v65 = v61 ^ readUInt32LE(this.buffer, (146 * 4) - 104) ^ (v63 ^ v59 | ~v60);
+        v66 = readUInt32LE(this.buffer, (147 * 4) - 104) ^ v59 ^ v57 ^ v61 & v60;
+        v67 = v63 ^ readUInt32LE(this.buffer, (149 * 4) - 104);
+        v68 = rotr(v62 ^ readUInt32LE(this.buffer, (148 * 4) - 104) ^ v64 ^ (v63 | ~v60), 22);
         v69 = rotr(v65, 5);
         v70 = v67 ^ v68 ^ (v66 << 7);
         v71 = v67 ^ v69 ^ v66;
@@ -1309,10 +1311,10 @@ export class SERPENT {
         v79 = (v77 | v72) ^ v73 ^ v74;
         v80 = (v77 | v72 | v73 ^ v74) ^ v78;
         v81 = (v80 & v75 ^ (v73 | v74)) & v79;
-        v82 = v79 ^ readUInt32LE(this.buffer,(142 * 4) - 104);
-        v83 = v77 & v75 ^ readUInt32LE(this.buffer,(143 * 4) - 104) ^ (v79 | v78);
-        v84 = v77 ^ readUInt32LE(this.buffer,(145 * 4) - 104) ^ v81;
-        v85 = rotr(v80 ^ readUInt32LE(this.buffer,(144 * 4) - 104), 22);
+        v82 = v79 ^ readUInt32LE(this.buffer, (142 * 4) - 104);
+        v83 = v77 & v75 ^ readUInt32LE(this.buffer, (143 * 4) - 104) ^ (v79 | v78);
+        v84 = v77 ^ readUInt32LE(this.buffer, (145 * 4) - 104) ^ v81;
+        v85 = rotr(v80 ^ readUInt32LE(this.buffer, (144 * 4) - 104), 22);
         v86 = rotr(v82, 5);
         v87 = v85 ^ (v83 << 7) ^ v84;
         v88 = v83 ^ v86 ^ v84;
@@ -1327,10 +1329,10 @@ export class SERPENT {
         v97 = v96 & v92 ^ v94 ^ v93;
         v98 = v91 & ~v96;
         v99 = ((v94 | ~(v91 ^ v92)) ^ v91 | v94 ^ v93) ^ v91 ^ v92;
-        v100 = v97 ^  readUInt32LE(this.buffer,(138 * 4) - 104);
-        v101 = v96 ^ ~readUInt32LE(this.buffer,(139 * 4) - 104) ^ (v99 | v97);
-        v102 = v99 ^  readUInt32LE(this.buffer,(141 * 4) - 104);
-        v103 = rotr(  readUInt32LE(this.buffer,(140 * 4) - 104) ^ v95 ^ v98 ^ (v99 | v97), 22);
+        v100 = v97 ^ readUInt32LE(this.buffer, (138 * 4) - 104);
+        v101 = v96 ^ ~readUInt32LE(this.buffer, (139 * 4) - 104) ^ (v99 | v97);
+        v102 = v99 ^ readUInt32LE(this.buffer, (141 * 4) - 104);
+        v103 = rotr(readUInt32LE(this.buffer, (140 * 4) - 104) ^ v95 ^ v98 ^ (v99 | v97), 22);
         v104 = rotr(v100, 5);
         v105 = v102 ^ v103 ^ (v101 << 7);
         v106 = v102 ^ v104 ^ v101;
@@ -1345,10 +1347,10 @@ export class SERPENT {
         v115 = ((v109 ^ v112 | v111) ^ v110) & v113;
         v116 = v115 ^ v110 & v112;
         v117 = v115 ^ v109 ^ v112;
-        v118 = v116 ^ ~(readUInt32LE(this.buffer,(134 * 4) - 104) ^ v111 ^ v109 & v112);
-        v119 = v117 ^   readUInt32LE(this.buffer,(135 * 4) - 104);
-        v120 = v114 ^   readUInt32LE(this.buffer,(137 * 4) - 104);
-        v121 = rotr(v116 ^ ~readUInt32LE(this.buffer,(136 * 4) - 104) ^ v117 & v114, 22);
+        v118 = v116 ^ ~(readUInt32LE(this.buffer, (134 * 4) - 104) ^ v111 ^ v109 & v112);
+        v119 = v117 ^ readUInt32LE(this.buffer, (135 * 4) - 104);
+        v120 = v114 ^ readUInt32LE(this.buffer, (137 * 4) - 104);
+        v121 = rotr(v116 ^ ~readUInt32LE(this.buffer, (136 * 4) - 104) ^ v117 & v114, 22);
         v122 = rotr(v118, 5);
         v123 = v120 ^ v121 ^ (v119 << 7);
         v124 = v120 ^ v122 ^ v119;
@@ -1365,10 +1367,10 @@ export class SERPENT {
         v135 = v131 & v129;
         v136 = v134 & v133 ^ v131;
         v137 = (v136 | v132) ^ v135;
-        v138 = v133 ^ readUInt32LE(this.buffer,(130 * 4) - 104) ^ v132 ^ v137;
-        v139 = v136 ^ readUInt32LE(this.buffer,(131 * 4) - 104);
-        v140 = v137 ^ readUInt32LE(this.buffer,(133 * 4) - 104);
-        v141 = rotr(v134 ^ readUInt32LE(this.buffer,(132 * 4) - 104), 22);
+        v138 = v133 ^ readUInt32LE(this.buffer, (130 * 4) - 104) ^ v132 ^ v137;
+        v139 = v136 ^ readUInt32LE(this.buffer, (131 * 4) - 104);
+        v140 = v137 ^ readUInt32LE(this.buffer, (133 * 4) - 104);
+        v141 = rotr(v134 ^ readUInt32LE(this.buffer, (132 * 4) - 104), 22);
         v142 = rotr(v138, 5);
         v143 = v141 ^ (v139 << 7) ^ v140;
         v144 = v139 ^ v142 ^ v140;
@@ -1385,10 +1387,10 @@ export class SERPENT {
         v155 = v154 ^ v149;
         v156 = (v154 | ~(v153 ^ v147)) ^ v150;
         v157 = v155 ^ (v156 | v147);
-        v158 = v157 ^ readUInt32LE(this.buffer,(126 * 4) - 104);
-        v159 = v156 ^ readUInt32LE(this.buffer,(127 * 4) - 104);
-        v160 = v153 ^ readUInt32LE(this.buffer,(129 * 4) - 104);
-        v161 = rotr(v151 ^ readUInt32LE(this.buffer,(128 * 4) - 104) ^ v153 & v150 ^ v156 ^ v157, 22);
+        v158 = v157 ^ readUInt32LE(this.buffer, (126 * 4) - 104);
+        v159 = v156 ^ readUInt32LE(this.buffer, (127 * 4) - 104);
+        v160 = v153 ^ readUInt32LE(this.buffer, (129 * 4) - 104);
+        v161 = rotr(v151 ^ readUInt32LE(this.buffer, (128 * 4) - 104) ^ v153 & v150 ^ v156 ^ v157, 22);
         v162 = rotr(v158, 5);
         v163 = v160 ^ v161 ^ (v159 << 7);
         v164 = v160 ^ v162 ^ v159;
@@ -1403,10 +1405,10 @@ export class SERPENT {
         v173 = v167 & ~v170;
         v174 = v171 & v172 ^ v168 ^ v170;
         v175 = (v174 | v168) ^ v172;
-        v176 = v174 ^ readUInt32LE(this.buffer,(122 * 4) - 104) ^ (v175 | v168);
-        v177 = v172 ^ readUInt32LE(this.buffer,(123 * 4) - 104) ^ v171;
-        v178 = v173 ^ readUInt32LE(this.buffer,(124 * 4) - 104) ^ v171 ^ (v175 | v168);
-        v179 = v175 ^ readUInt32LE(this.buffer,(125 * 4) - 104);
+        v176 = v174 ^ readUInt32LE(this.buffer, (122 * 4) - 104) ^ (v175 | v168);
+        v177 = v172 ^ readUInt32LE(this.buffer, (123 * 4) - 104) ^ v171;
+        v178 = v173 ^ readUInt32LE(this.buffer, (124 * 4) - 104) ^ v171 ^ (v175 | v168);
+        v179 = v175 ^ readUInt32LE(this.buffer, (125 * 4) - 104);
         v180 = rotr(v178, 22);
         v181 = rotr(v176, 5);
         v182 = v180 ^ (v177 << 7) ^ v179;
@@ -1421,10 +1423,10 @@ export class SERPENT {
         v191 = v188 ^ ~v187 ^ v190 & v189;
         v192 = (v186 | v189) & v187;
         v193 = v190 & v189 | v189 ^ v188;
-        v194 = v188 ^ ~readUInt32LE(this.buffer,(118 * 4) - 104) ^ (v186 | v189) ^ (v191 | v187);
-        v195 = v190 ^  readUInt32LE(this.buffer,(119 * 4) - 104) ^ (v191 | v187) & v189;
-        v196 = v191 ^  readUInt32LE(this.buffer,(121 * 4) - 104);
-        v197 = rotr(v192 ^ readUInt32LE(this.buffer,(120 * 4) - 104) ^ v193, 22);
+        v194 = v188 ^ ~readUInt32LE(this.buffer, (118 * 4) - 104) ^ (v186 | v189) ^ (v191 | v187);
+        v195 = v190 ^ readUInt32LE(this.buffer, (119 * 4) - 104) ^ (v191 | v187) & v189;
+        v196 = v191 ^ readUInt32LE(this.buffer, (121 * 4) - 104);
+        v197 = rotr(v192 ^ readUInt32LE(this.buffer, (120 * 4) - 104) ^ v193, 22);
         v198 = rotr(v194, 5);
         v199 = v196 ^ v197 ^ (v195 << 7);
         v200 = v196 ^ v198 ^ v195;
@@ -1436,10 +1438,10 @@ export class SERPENT {
         v206 = v201 | v202;
         v207 = v205 ^ (v201 ^ v204) & (v201 | v202);
         v208 = v205 & v204 | v203;
-        v209 = v205 ^ readUInt32LE(this.buffer,(114 * 4) - 104) ^ (v207 ^ v203 | ~v204);
-        v210 = readUInt32LE(this.buffer,(115 * 4) - 104) ^ v203 ^ v201 ^ v205 & v204;
-        v211 = v207 ^ readUInt32LE(this.buffer,(117 * 4) - 104);
-        v212 = rotr(v206 ^ readUInt32LE(this.buffer,(116 * 4) - 104) ^ v208 ^ (v207 | ~v204), 22);
+        v209 = v205 ^ readUInt32LE(this.buffer, (114 * 4) - 104) ^ (v207 ^ v203 | ~v204);
+        v210 = readUInt32LE(this.buffer, (115 * 4) - 104) ^ v203 ^ v201 ^ v205 & v204;
+        v211 = v207 ^ readUInt32LE(this.buffer, (117 * 4) - 104);
+        v212 = rotr(v206 ^ readUInt32LE(this.buffer, (116 * 4) - 104) ^ v208 ^ (v207 | ~v204), 22);
         v213 = rotr(v209, 5);
         v214 = v211 ^ v212 ^ (v210 << 7);
         v215 = v211 ^ v213 ^ v210;
@@ -1453,10 +1455,10 @@ export class SERPENT {
         v223 = (v221 | v216) ^ v217 ^ v218;
         v224 = (v221 | v216 | v217 ^ v218) ^ v222;
         v225 = (v224 & v219 ^ (v217 | v218)) & v223;
-        v226 = v223 ^ readUInt32LE(this.buffer,(110 * 4) - 104);
-        v227 = v221 & v219 ^ readUInt32LE(this.buffer,(111 * 4) - 104) ^ (v223 | v222);
-        v228 = v221 ^ readUInt32LE(this.buffer,(113 * 4) - 104) ^ v225;
-        v229 = rotr(v224 ^ readUInt32LE(this.buffer,(112 * 4) - 104), 22);
+        v226 = v223 ^ readUInt32LE(this.buffer, (110 * 4) - 104);
+        v227 = v221 & v219 ^ readUInt32LE(this.buffer, (111 * 4) - 104) ^ (v223 | v222);
+        v228 = v221 ^ readUInt32LE(this.buffer, (113 * 4) - 104) ^ v225;
+        v229 = rotr(v224 ^ readUInt32LE(this.buffer, (112 * 4) - 104), 22);
         v230 = rotr(v226, 5);
         v231 = v229 ^ (v227 << 7) ^ v228;
         v232 = v227 ^ v230 ^ v228;
@@ -1471,10 +1473,10 @@ export class SERPENT {
         v241 = v240 & v236 ^ v238 ^ v237;
         v242 = v235 & ~v240;
         v243 = ((v238 | ~(v235 ^ v236)) ^ v235 | v238 ^ v237) ^ v235 ^ v236;
-        v244 = v241 ^  readUInt32LE(this.buffer,(106 * 4) - 104);
-        v245 = v240 ^ ~readUInt32LE(this.buffer,(107 * 4) - 104) ^ (v243 | v241);
-        v246 = v243 ^  readUInt32LE(this.buffer,(109 * 4) - 104);
-        v247 = rotr(readUInt32LE(this.buffer,(108 * 4) - 104) ^ v239 ^ v242 ^ (v243 | v241), 22);
+        v244 = v241 ^ readUInt32LE(this.buffer, (106 * 4) - 104);
+        v245 = v240 ^ ~readUInt32LE(this.buffer, (107 * 4) - 104) ^ (v243 | v241);
+        v246 = v243 ^ readUInt32LE(this.buffer, (109 * 4) - 104);
+        v247 = rotr(readUInt32LE(this.buffer, (108 * 4) - 104) ^ v239 ^ v242 ^ (v243 | v241), 22);
         v248 = rotr(v244, 5);
         v249 = v246 ^ v247 ^ (v245 << 7);
         v250 = v246 ^ v248 ^ v245;
@@ -1489,10 +1491,10 @@ export class SERPENT {
         v259 = ((v253 ^ v256 | v255) ^ v254) & v257;
         v260 = v259 ^ v254 & v256;
         v261 = v259 ^ v253 ^ v256;
-        v262 = v260 ^ ~(readUInt32LE(this.buffer,(102 * 4) - 104) ^ v255 ^ v253 & v256);
-        v263 = v261 ^ readUInt32LE(this.buffer,(103 * 4) - 104);
-        v264 = v258 ^ readUInt32LE(this.buffer,(105 * 4) - 104);
-        v265 = rotr(v260 ^ ~readUInt32LE(this.buffer,(104 * 4) - 104) ^ v261 & v258, 22);
+        v262 = v260 ^ ~(readUInt32LE(this.buffer, (102 * 4) - 104) ^ v255 ^ v253 & v256);
+        v263 = v261 ^ readUInt32LE(this.buffer, (103 * 4) - 104);
+        v264 = v258 ^ readUInt32LE(this.buffer, (105 * 4) - 104);
+        v265 = rotr(v260 ^ ~readUInt32LE(this.buffer, (104 * 4) - 104) ^ v261 & v258, 22);
         v266 = rotr(v262, 5);
         v267 = v264 ^ v265 ^ (v263 << 7);
         v268 = v264 ^ v266 ^ v263;
@@ -1509,10 +1511,10 @@ export class SERPENT {
         v279 = v275 & v273;
         v280 = v278 & v277 ^ v275;
         v281 = (v280 | v276) ^ v279;
-        v282 = v277 ^ readUInt32LE(this.buffer,(98 * 4) - 104) ^ v276 ^ v281;
-        v283 = v280 ^ readUInt32LE(this.buffer,(99 * 4) - 104);
-        v284 = v281 ^ readUInt32LE(this.buffer,(101 * 4) - 104);
-        v285 = rotr(v278 ^ readUInt32LE(this.buffer,(100 * 4) - 104), 22);
+        v282 = v277 ^ readUInt32LE(this.buffer, (98 * 4) - 104) ^ v276 ^ v281;
+        v283 = v280 ^ readUInt32LE(this.buffer, (99 * 4) - 104);
+        v284 = v281 ^ readUInt32LE(this.buffer, (101 * 4) - 104);
+        v285 = rotr(v278 ^ readUInt32LE(this.buffer, (100 * 4) - 104), 22);
         v286 = rotr(v282, 5);
         v287 = v285 ^ (v283 << 7) ^ v284;
         v288 = v283 ^ v286 ^ v284;
@@ -1529,10 +1531,10 @@ export class SERPENT {
         v299 = v298 ^ v293;
         v300 = (v298 | ~(v297 ^ v291)) ^ v294;
         v301 = v299 ^ (v300 | v291);
-        v302 = v301 ^ readUInt32LE(this.buffer,(94 * 4) - 104);
-        v303 = v300 ^ readUInt32LE(this.buffer,(95 * 4) - 104);
-        v304 = v297 ^ readUInt32LE(this.buffer,(97 * 4) - 104);
-        v305 = rotr(v295 ^ readUInt32LE(this.buffer,(96 * 4) - 104) ^ v297 & v294 ^ v300 ^ v301, 22);
+        v302 = v301 ^ readUInt32LE(this.buffer, (94 * 4) - 104);
+        v303 = v300 ^ readUInt32LE(this.buffer, (95 * 4) - 104);
+        v304 = v297 ^ readUInt32LE(this.buffer, (97 * 4) - 104);
+        v305 = rotr(v295 ^ readUInt32LE(this.buffer, (96 * 4) - 104) ^ v297 & v294 ^ v300 ^ v301, 22);
         v306 = rotr(v302, 5);
         v307 = v304 ^ v305 ^ (v303 << 7);
         v308 = v304 ^ v306 ^ v303;
@@ -1547,10 +1549,10 @@ export class SERPENT {
         v317 = v311 & ~v314;
         v318 = v315 & v316 ^ v312 ^ v314;
         v319 = (v318 | v312) ^ v316;
-        v320 = v318 ^ readUInt32LE(this.buffer,(90 * 4) - 104) ^ (v319 | v312);
-        v321 = v316 ^ readUInt32LE(this.buffer,(91 * 4) - 104) ^ v315;
-        v322 = v317 ^ readUInt32LE(this.buffer,(92 * 4) - 104) ^ v315 ^ (v319 | v312);
-        v323 = v319 ^ readUInt32LE(this.buffer,(93 * 4) - 104);
+        v320 = v318 ^ readUInt32LE(this.buffer, (90 * 4) - 104) ^ (v319 | v312);
+        v321 = v316 ^ readUInt32LE(this.buffer, (91 * 4) - 104) ^ v315;
+        v322 = v317 ^ readUInt32LE(this.buffer, (92 * 4) - 104) ^ v315 ^ (v319 | v312);
+        v323 = v319 ^ readUInt32LE(this.buffer, (93 * 4) - 104);
         v324 = rotr(v322, 22);
         v325 = rotr(v320, 5);
         v326 = v324 ^ (v321 << 7) ^ v323;
@@ -1565,10 +1567,10 @@ export class SERPENT {
         v335 = v332 ^ ~v331 ^ v334 & v333;
         v336 = (v330 | v333) & v331;
         v337 = v334 & v333 | v333 ^ v332;
-        v338 = v332 ^ ~readUInt32LE(this.buffer,(86 * 4) - 104) ^ (v330 | v333) ^ (v335 | v331);
-        v339 = v334 ^  readUInt32LE(this.buffer,(87 * 4) - 104) ^ (v335 | v331) & v333;
-        v340 = v335 ^  readUInt32LE(this.buffer,(89 * 4) - 104);
-        v341 = rotr(v336 ^ readUInt32LE(this.buffer,(88 * 4) - 104) ^ v337, 22);
+        v338 = v332 ^ ~readUInt32LE(this.buffer, (86 * 4) - 104) ^ (v330 | v333) ^ (v335 | v331);
+        v339 = v334 ^ readUInt32LE(this.buffer, (87 * 4) - 104) ^ (v335 | v331) & v333;
+        v340 = v335 ^ readUInt32LE(this.buffer, (89 * 4) - 104);
+        v341 = rotr(v336 ^ readUInt32LE(this.buffer, (88 * 4) - 104) ^ v337, 22);
         v342 = rotr(v338, 5);
         v343 = v340 ^ v341 ^ (v339 << 7);
         v344 = v340 ^ v342 ^ v339;
@@ -1580,10 +1582,10 @@ export class SERPENT {
         v350 = v345 | v346;
         v351 = v349 ^ (v345 ^ v348) & (v345 | v346);
         v352 = v349 & v348 | v347;
-        v353 = v349 ^ readUInt32LE(this.buffer,(82 * 4) - 104) ^ (v351 ^ v347 | ~v348);
-        v354 = readUInt32LE(this.buffer,(83 * 4) - 104) ^ v347 ^ v345 ^ v349 & v348;
-        v355 = v351 ^ readUInt32LE(this.buffer,(85 * 4) - 104);
-        v356 = rotr(v350 ^ readUInt32LE(this.buffer,(84 * 4) - 104) ^ v352 ^ (v351 | ~v348), 22);
+        v353 = v349 ^ readUInt32LE(this.buffer, (82 * 4) - 104) ^ (v351 ^ v347 | ~v348);
+        v354 = readUInt32LE(this.buffer, (83 * 4) - 104) ^ v347 ^ v345 ^ v349 & v348;
+        v355 = v351 ^ readUInt32LE(this.buffer, (85 * 4) - 104);
+        v356 = rotr(v350 ^ readUInt32LE(this.buffer, (84 * 4) - 104) ^ v352 ^ (v351 | ~v348), 22);
         v357 = rotr(v353, 5);
         v358 = v355 ^ v356 ^ (v354 << 7);
         v359 = v355 ^ v357 ^ v354;
@@ -1597,10 +1599,10 @@ export class SERPENT {
         v367 = (v365 | v360) ^ v361 ^ v362;
         v368 = (v365 | v360 | v361 ^ v362) ^ v366;
         v369 = (v368 & v363 ^ (v361 | v362)) & v367;
-        v370 = v367 ^ readUInt32LE(this.buffer,(78 * 4) - 104);
-        v371 = v365 & v363 ^ readUInt32LE(this.buffer,(79 * 4) - 104) ^ (v367 | v366);
-        v372 = v365 ^ readUInt32LE(this.buffer,(81 * 4) - 104) ^ v369;
-        v373 = rotr(v368 ^ readUInt32LE(this.buffer,(80 * 4) - 104), 22);
+        v370 = v367 ^ readUInt32LE(this.buffer, (78 * 4) - 104);
+        v371 = v365 & v363 ^ readUInt32LE(this.buffer, (79 * 4) - 104) ^ (v367 | v366);
+        v372 = v365 ^ readUInt32LE(this.buffer, (81 * 4) - 104) ^ v369;
+        v373 = rotr(v368 ^ readUInt32LE(this.buffer, (80 * 4) - 104), 22);
         v374 = rotr(v370, 5);
         v375 = v373 ^ (v371 << 7) ^ v372;
         v376 = v371 ^ v374 ^ v372;
@@ -1615,10 +1617,10 @@ export class SERPENT {
         v385 = v384 & v380 ^ v382 ^ v381;
         v386 = v379 & ~v384;
         v387 = ((v382 | ~(v379 ^ v380)) ^ v379 | v382 ^ v381) ^ v379 ^ v380;
-        v388 = v385 ^  readUInt32LE(this.buffer,(74 * 4) - 104);
-        v389 = v384 ^ ~readUInt32LE(this.buffer,(75 * 4) - 104) ^ (v387 | v385);
-        v390 = v387 ^  readUInt32LE(this.buffer,(77 * 4) - 104);
-        v391 = rotr(readUInt32LE(this.buffer,(76 * 4) - 104) ^ v383 ^ v386 ^ (v387 | v385), 22);
+        v388 = v385 ^ readUInt32LE(this.buffer, (74 * 4) - 104);
+        v389 = v384 ^ ~readUInt32LE(this.buffer, (75 * 4) - 104) ^ (v387 | v385);
+        v390 = v387 ^ readUInt32LE(this.buffer, (77 * 4) - 104);
+        v391 = rotr(readUInt32LE(this.buffer, (76 * 4) - 104) ^ v383 ^ v386 ^ (v387 | v385), 22);
         v392 = rotr(v388, 5);
         v393 = v390 ^ v391 ^ (v389 << 7);
         v394 = v390 ^ v392 ^ v389;
@@ -1633,10 +1635,10 @@ export class SERPENT {
         v403 = ((v397 ^ v400 | v399) ^ v398) & v401;
         v404 = v403 ^ v398 & v400;
         v405 = v403 ^ v397 ^ v400;
-        v406 = v404 ^ ~(readUInt32LE(this.buffer,(70 * 4) - 104) ^ v399 ^ v397 & v400);
-        v407 = v405 ^ readUInt32LE(this.buffer,(71 * 4) - 104);
-        v408 = v402 ^ readUInt32LE(this.buffer,(73 * 4) - 104);
-        v409 = rotr(v404 ^ ~readUInt32LE(this.buffer,(72 * 4) - 104) ^ v405 & v402, 22);
+        v406 = v404 ^ ~(readUInt32LE(this.buffer, (70 * 4) - 104) ^ v399 ^ v397 & v400);
+        v407 = v405 ^ readUInt32LE(this.buffer, (71 * 4) - 104);
+        v408 = v402 ^ readUInt32LE(this.buffer, (73 * 4) - 104);
+        v409 = rotr(v404 ^ ~readUInt32LE(this.buffer, (72 * 4) - 104) ^ v405 & v402, 22);
         v410 = rotr(v406, 5);
         v411 = v408 ^ v409 ^ (v407 << 7);
         v412 = v408 ^ v410 ^ v407;
@@ -1653,10 +1655,10 @@ export class SERPENT {
         v423 = v419 & v417;
         v424 = v422 & v421 ^ v419;
         v425 = (v424 | v420) ^ v423;
-        v426 = v421 ^ readUInt32LE(this.buffer,(66 * 4) - 104) ^ v420 ^ v425;
-        v427 = v424 ^ readUInt32LE(this.buffer,(67 * 4) - 104);
-        v428 = v425 ^ readUInt32LE(this.buffer,(69 * 4) - 104);
-        v429 = rotr(v422 ^ readUInt32LE(this.buffer,(68 * 4) - 104), 22);
+        v426 = v421 ^ readUInt32LE(this.buffer, (66 * 4) - 104) ^ v420 ^ v425;
+        v427 = v424 ^ readUInt32LE(this.buffer, (67 * 4) - 104);
+        v428 = v425 ^ readUInt32LE(this.buffer, (69 * 4) - 104);
+        v429 = rotr(v422 ^ readUInt32LE(this.buffer, (68 * 4) - 104), 22);
         v430 = rotr(v426, 5);
         v431 = v429 ^ (v427 << 7) ^ v428;
         v432 = v427 ^ v430 ^ v428;
@@ -1673,10 +1675,10 @@ export class SERPENT {
         v443 = v442 ^ v437;
         v444 = (v442 | ~(v441 ^ v435)) ^ v438;
         v445 = v443 ^ (v444 | v435);
-        v446 = v445 ^ readUInt32LE(this.buffer,(62 * 4) - 104);
-        v447 = v444 ^ readUInt32LE(this.buffer,(63 * 4) - 104);
-        v448 = v441 ^ readUInt32LE(this.buffer,(65 * 4) - 104);
-        v449 = rotr(v439 ^ readUInt32LE(this.buffer,(64 * 4) - 104) ^ v441 & v438 ^ v444 ^ v445, 22);
+        v446 = v445 ^ readUInt32LE(this.buffer, (62 * 4) - 104);
+        v447 = v444 ^ readUInt32LE(this.buffer, (63 * 4) - 104);
+        v448 = v441 ^ readUInt32LE(this.buffer, (65 * 4) - 104);
+        v449 = rotr(v439 ^ readUInt32LE(this.buffer, (64 * 4) - 104) ^ v441 & v438 ^ v444 ^ v445, 22);
         v450 = rotr(v446, 5);
         v451 = v448 ^ v449 ^ (v447 << 7);
         v452 = v448 ^ v450 ^ v447;
@@ -1690,11 +1692,11 @@ export class SERPENT {
         v460 = v455 ^ (v457 | ~v458);
         v461 = v459 & v460 ^ v456 ^ v458;
         v462 = (v461 | v456) ^ v460;
-        v463 = v455 & ~v458 ^ readUInt32LE(this.buffer,(60 * 4) - 104);
-        v464 = v461 ^ readUInt32LE(this.buffer,(58 * 4) - 104) ^ (v462 | v456);
-        v465 = v460 ^ readUInt32LE(this.buffer,(59 * 4) - 104) ^ v459;
+        v463 = v455 & ~v458 ^ readUInt32LE(this.buffer, (60 * 4) - 104);
+        v464 = v461 ^ readUInt32LE(this.buffer, (58 * 4) - 104) ^ (v462 | v456);
+        v465 = v460 ^ readUInt32LE(this.buffer, (59 * 4) - 104) ^ v459;
         v466 = v463 ^ v459 ^ (v462 | v456);
-        v467 = v462 ^ readUInt32LE(this.buffer,(61 * 4) - 104);
+        v467 = v462 ^ readUInt32LE(this.buffer, (61 * 4) - 104);
         v468 = rotr(v466, 22);
         v469 = rotr(v464, 5);
         v470 = v468 ^ (v465 << 7) ^ v467;
@@ -1709,10 +1711,10 @@ export class SERPENT {
         v479 = v476 ^ ~v475 ^ v478 & v477;
         v480 = v478 & v477 | v477 ^ v476;
         v481 = (v474 | v477) & v475;
-        v482 = v476 ^ ~readUInt32LE(this.buffer,(54 * 4) - 104) ^ (v474 | v477) ^ (v479 | v475);
-        v483 = v478 ^  readUInt32LE(this.buffer,(55 * 4) - 104) ^ (v479 | v475) & v477;
-        v484 = v479 ^  readUInt32LE(this.buffer,(57 * 4) - 104);
-        v485 = rotr(v481 ^ readUInt32LE(this.buffer,(56 * 4) - 104) ^ v480, 22);
+        v482 = v476 ^ ~readUInt32LE(this.buffer, (54 * 4) - 104) ^ (v474 | v477) ^ (v479 | v475);
+        v483 = v478 ^ readUInt32LE(this.buffer, (55 * 4) - 104) ^ (v479 | v475) & v477;
+        v484 = v479 ^ readUInt32LE(this.buffer, (57 * 4) - 104);
+        v485 = rotr(v481 ^ readUInt32LE(this.buffer, (56 * 4) - 104) ^ v480, 22);
         v486 = rotr(v482, 5);
         v487 = v484 ^ v485 ^ (v483 << 7);
         v488 = v484 ^ v486 ^ v483;
@@ -1724,10 +1726,10 @@ export class SERPENT {
         v494 = v489 | v490;
         v495 = v493 ^ (v489 ^ v492) & (v489 | v490);
         v496 = v493 & v492 | v491;
-        v497 = v493 ^ readUInt32LE(this.buffer,(50 * 4) - 104) ^ (v495 ^ v491 | ~v492);
-        v498 = readUInt32LE(this.buffer,(51 * 4) - 104) ^ v491 ^ v489 ^ v493 & v492;
-        v499 = v495 ^ readUInt32LE(this.buffer,(53 * 4) - 104);
-        v500 = rotr(v494 ^ readUInt32LE(this.buffer,(52 * 4) - 104) ^ v496 ^ (v495 | ~v492), 22);
+        v497 = v493 ^ readUInt32LE(this.buffer, (50 * 4) - 104) ^ (v495 ^ v491 | ~v492);
+        v498 = readUInt32LE(this.buffer, (51 * 4) - 104) ^ v491 ^ v489 ^ v493 & v492;
+        v499 = v495 ^ readUInt32LE(this.buffer, (53 * 4) - 104);
+        v500 = rotr(v494 ^ readUInt32LE(this.buffer, (52 * 4) - 104) ^ v496 ^ (v495 | ~v492), 22);
         v501 = rotr(v497, 5);
         v502 = v499 ^ v500 ^ (v498 << 7);
         v503 = v499 ^ v501 ^ v498;
@@ -1741,10 +1743,10 @@ export class SERPENT {
         v511 = (v509 | v504) ^ v505 ^ v506;
         v512 = (v509 | v504 | v505 ^ v506) ^ v510;
         v513 = (v512 & v507 ^ (v505 | v506)) & v511;
-        v514 = v511 ^ readUInt32LE(this.buffer,(46 * 4) - 104);
-        v515 = v509 & v507 ^ readUInt32LE(this.buffer,(47 * 4) - 104) ^ (v511 | v510);
-        v516 = v509 ^ readUInt32LE(this.buffer,(49 * 4) - 104) ^ v513;
-        v517 = rotr(v512 ^ readUInt32LE(this.buffer,(48 * 4) - 104), 22);
+        v514 = v511 ^ readUInt32LE(this.buffer, (46 * 4) - 104);
+        v515 = v509 & v507 ^ readUInt32LE(this.buffer, (47 * 4) - 104) ^ (v511 | v510);
+        v516 = v509 ^ readUInt32LE(this.buffer, (49 * 4) - 104) ^ v513;
+        v517 = rotr(v512 ^ readUInt32LE(this.buffer, (48 * 4) - 104), 22);
         v518 = rotr(v514, 5);
         v519 = v517 ^ (v515 << 7) ^ v516;
         v520 = v515 ^ v518 ^ v516;
@@ -1758,10 +1760,10 @@ export class SERPENT {
         v528 = v527 & v524 ^ v526 ^ v525;
         v529 = v523 & ~v527;
         v530 = ((v526 | ~(v523 ^ v524)) ^ v523 | v526 ^ v525) ^ v523 ^ v524;
-        v531 = readUInt32LE(this.buffer,(44 * 4) - 104) ^ v526 ^ v525;
-        v532 = v528 ^  readUInt32LE(this.buffer,(42 * 4) - 104);
-        v533 = v527 ^ ~readUInt32LE(this.buffer,(43 * 4) - 104) ^ (v530 | v528);
-        v534 = v530 ^  readUInt32LE(this.buffer,(45 * 4) - 104);
+        v531 = readUInt32LE(this.buffer, (44 * 4) - 104) ^ v526 ^ v525;
+        v532 = v528 ^ readUInt32LE(this.buffer, (42 * 4) - 104);
+        v533 = v527 ^ ~readUInt32LE(this.buffer, (43 * 4) - 104) ^ (v530 | v528);
+        v534 = v530 ^ readUInt32LE(this.buffer, (45 * 4) - 104);
         v535 = rotr(v531 ^ v529 ^ (v530 | v528), 22);
         v536 = rotr(v532, 5);
         v537 = v534 ^ v535 ^ (v533 << 7);
@@ -1777,10 +1779,10 @@ export class SERPENT {
         v547 = ((v541 ^ v544 | v543) ^ v542) & v545;
         v548 = v547 ^ v542 & v544;
         v549 = v547 ^ v541 ^ v544;
-        v550 = v548 ^ ~(readUInt32LE(this.buffer,(38 * 4) - 104) ^ v543 ^ v541 & v544);
-        v551 = v549 ^ readUInt32LE(this.buffer,(39 * 4) - 104);
-        v552 = v546 ^ readUInt32LE(this.buffer,(41 * 4) - 104);
-        v553 = rotr(v548 ^ ~readUInt32LE(this.buffer,(40 * 4) - 104) ^ v549 & v546, 22);
+        v550 = v548 ^ ~(readUInt32LE(this.buffer, (38 * 4) - 104) ^ v543 ^ v541 & v544);
+        v551 = v549 ^ readUInt32LE(this.buffer, (39 * 4) - 104);
+        v552 = v546 ^ readUInt32LE(this.buffer, (41 * 4) - 104);
+        v553 = rotr(v548 ^ ~readUInt32LE(this.buffer, (40 * 4) - 104) ^ v549 & v546, 22);
         v554 = rotr(v550, 5);
         v555 = v552 ^ v553 ^ (v551 << 7);
         v556 = v552 ^ v554 ^ v551;
@@ -1797,16 +1799,16 @@ export class SERPENT {
         v567 = v563 & resu;
         v568 = v566 & v565 ^ v563;
         v569 = (v568 | v564) ^ v567;
-        let v570 = v565 ^ readUInt32LE(this.buffer,(34 * 4) - 104) ^ v564 ^ v569;
-        let v571 = v568 ^ readUInt32LE(this.buffer,(35 * 4) - 104);
-        let v572 = v566 ^ readUInt32LE(this.buffer,(36 * 4) - 104);
-        let v573 = v569 ^ readUInt32LE(this.buffer,(37 * 4) - 104);
-        var out_blk:Buffer|Uint8Array;
+        let v570 = v565 ^ readUInt32LE(this.buffer, (34 * 4) - 104) ^ v564 ^ v569;
+        let v571 = v568 ^ readUInt32LE(this.buffer, (35 * 4) - 104);
+        let v572 = v566 ^ readUInt32LE(this.buffer, (36 * 4) - 104);
+        let v573 = v569 ^ readUInt32LE(this.buffer, (37 * 4) - 104);
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
             out_blk = new Uint8Array(16);
-        } 
+        }
         writeUInt32LE(out_blk, v570 >>> 0, 0)
         writeUInt32LE(out_blk, v571 >>> 0, 4)
         writeUInt32LE(out_blk, v572 >>> 0, 8);
@@ -1819,16 +1821,18 @@ export class SERPENT {
     }
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padd - ```Number```
+     * @param {Number} padding - ```Number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt (data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -1836,12 +1840,12 @@ export class SERPENT {
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
@@ -1855,7 +1859,7 @@ export class SERPENT {
             const return_block = this.encrypt_block(block);
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -1866,15 +1870,20 @@ export class SERPENT {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -1882,10 +1891,17 @@ export class SERPENT {
             throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -1893,12 +1909,23 @@ export class SERPENT {
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
             }
         }
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             const block = data.subarray((index * block_size), (index + 1) * block_size);
-            const return_block = this.decrypt_block(block);
-            return_buff.push(return_block);
+            var return_block = this.decrypt_block(block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -1907,5 +1934,5 @@ export class SERPENT {
         this.iv_set = false
         return final_buffer;
     };
-    
+
 }

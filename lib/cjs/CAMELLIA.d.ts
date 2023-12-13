@@ -94,24 +94,31 @@ export declare class CAMELLIA {
      */
     set_key(key: Buffer | Uint8Array): void;
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     *
      * If IV was set, runs in CBC mode.
      *
+     * If padding number is not set, uses PKCS padding.
+     *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padd - ```number```
+     * @param {number} padding - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in: Buffer | Uint8Array, padd?: number): Uint8Array | Buffer;
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Uint8Array | Buffer;
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     *
      * If IV was set, runs in CBC mode.
      *
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     *
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
+     *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in: Buffer | Uint8Array): Buffer | Uint8Array;
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array;
     private processBlock;
     private processBlock128;
     private processBlock192or256;

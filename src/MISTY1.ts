@@ -5,10 +5,12 @@ import {
     concatenateUint8Arrays,
     xor,
     readUInt16LE,
-    writeUInt16LE
+    writeUInt16LE,
+    align,
+    removePKCSPadding
 } from './common.js'
 
-const ShortSwitch = (a1:number):number => {
+const ShortSwitch = (a1: number): number => {
     const value1 = (a1 >> 8) & 0xff;
     const value2 = a1 & 0xff;
     const return_buffer = readUInt16LE(new Uint8Array([value1, value2]), 0);
@@ -64,17 +66,17 @@ const ShortSwitch = (a1:number):number => {
  * ```
  */
 export class MISTY1 {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
-    private buffer:any
-    private a:any
-    private b:any
-    private c:any
-    private d:any
+    private previous_block: any;
+    private buffer: any
+    private a: any
+    private b: any
+    private c: any
+    private d: any
 
     constructor() {
     }
@@ -172,7 +174,7 @@ export class MISTY1 {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
         }
@@ -263,7 +265,7 @@ export class MISTY1 {
         this.key_set = true
     };
 
-    private encrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private encrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         //check if IV is set, if so runs CBC
         let start_chunk = block;
         if (this.iv_set == true) {
@@ -271,7 +273,7 @@ export class MISTY1 {
         }
 
         let letter = "a";
-        let i:number;
+        let i: number;
         for (i = 0; i < 4; i++) {
             const element1 = start_chunk[i * 2];
             const element2 = start_chunk[(i * 2) + 1];
@@ -284,7 +286,7 @@ export class MISTY1 {
         let v9 = v8 & this.a ^ this.b;
         let v139 = readUInt16LE(this.buffer, (62 * 2) - 104); // correct
         let v10 = v139 & this.c ^ this.d;
-        let v11 = (readUInt16LE(this.buffer,(66 * 2) - 104) | v9) ^ this.a;
+        let v11 = (readUInt16LE(this.buffer, (66 * 2) - 104) | v9) ^ this.a;
         let v12 = readUInt16LE(this.buffer, (56 * 2) - 104);
         let v13 = ((v11 & 0xff) ^ (v8 & 0xff)) & 127 ^ this.Misty1Const[((v11 ^ v8) & 0xFFFF) >> 7];
         let v14 = v13 ^ this.Misty1_setup[((v11 & 0xFF) ^ (v8 & 0xFF)) & 127];
@@ -337,7 +339,7 @@ export class MISTY1 {
         let v52 = (v51 ^ v17) & 127;
         let v53 = v52 ^ this.Misty1Const[((v51 ^ v17) & 0xFFFF) >> 7];
         let v54 = v53 ^ this.Misty1_setup[v52];
-        this.d =  readUInt16LE(this.buffer, (75 * 2) - 104);
+        this.d = readUInt16LE(this.buffer, (75 * 2) - 104);
         let v55 = readUInt16LE(this.buffer, (83 * 2) - 104);
         let v56 = this.Misty1Const[(v53 ^ this.d) & 0xFFFF] ^ v49 ^ (v55 ^ v54) & 127 ^ ((v55 ^ v54) << 9);
         let v57 = (v49 ^ v12) & 127;
@@ -446,12 +448,12 @@ export class MISTY1 {
         let final = ((v92 | readUInt16LE(this.buffer, (52 * 2) - 104)) ^ v124) & 0xFFFF;
 
         //swtch a , b , c , d bytes
-        var out_blk:Uint8Array|Buffer;
+        var out_blk: Uint8Array | Buffer;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(8);
         } else {
             out_blk = new Uint8Array(8);
-        } 
+        }
         writeUInt16LE(out_blk, ShortSwitch(final), 0);
         writeUInt16LE(out_blk, ShortSwitch(v92), 2);
         writeUInt16LE(out_blk, ShortSwitch(v69), 4);
@@ -463,7 +465,7 @@ export class MISTY1 {
         return out_blk;
     };
 
-    private decrypt_block(block:Uint8Array|Buffer):Uint8Array|Buffer {
+    private decrypt_block(block: Uint8Array | Buffer): Uint8Array | Buffer {
         let start_chunk = block;
         if (this.iv_set == true) {
             if (this.previous_block != undefined) {
@@ -473,7 +475,7 @@ export class MISTY1 {
         this.previous_block = start_chunk;
 
         let letter = "a";
-        let i:number;
+        let i: number;
         for (i = 0; i < 4; i++) {
             const element1 = start_chunk[i * 2];
             const element2 = start_chunk[(i * 2) + 1];
@@ -500,7 +502,7 @@ export class MISTY1 {
         let v17 = (v2 ^ v10) & 127;
         let v18 = v17 ^ this.Misty1Const[(((v2 & 0XFFFF) ^ v10) & 0XFFFF) >> 7];
         let v19 = v18 ^ this.Misty1_setup[v17];
-        this.c =  readUInt16LE(this.buffer, (68 * 2) - 104);
+        this.c = readUInt16LE(this.buffer, (68 * 2) - 104);
         let v20 = readUInt16LE(this.buffer, (76 * 2) - 104);
         let v21 = this.Misty1Const[(v18 ^ this.c) & 0xFFFF] ^ v16 ^ (v20 ^ v19) & 127 ^ ((v20 ^ v19) << 9);
         let v22 = readUInt16LE(this.buffer, (58 * 2) - 104);
@@ -510,7 +512,7 @@ export class MISTY1 {
         let v25 = this.Misty1_setup[v24];
         let v26 = v24 ^ this.Misty1Const[v23];
         let v27 = v26 ^ v25;
-        let v28 =  readUInt16LE(this.buffer, (78 * 2) - 104);
+        let v28 = readUInt16LE(this.buffer, (78 * 2) - 104);
         let v140 = readUInt16LE(this.buffer, (70 * 2) - 104);
         let v29 = this.Misty1Const[(v26 ^ v140) & 0xFFFF];
         let v30 = readUInt16LE(this.buffer, (55 * 2) - 104);
@@ -577,7 +579,7 @@ export class MISTY1 {
         let v83 = v82 ^ this.Misty1_setup[v81];
         let v84 = this.Misty1Const[(v82 ^ v40) & 0xFFFF] ^ v55 ^ v79 ^ (v41 ^ v83) & 127 ^ ((v41 ^ v83) << 9);
         let v85 = v53 ^ v139 ^ v79 ^ (v84 | v22);
-        let v86 = (v70 |  readUInt16LE(this.buffer, (60 * 2) - 104)) ^ v69;
+        let v86 = (v70 | readUInt16LE(this.buffer, (60 * 2) - 104)) ^ v69;
         let v87 = ((v85 & readUInt16LE(this.buffer, (64 * 2) - 104)) & 0xFFFF) ^ v84;
         let v88 = (v85 ^ v30) & 127;
         let v89 = v88 ^ this.Misty1Const[((v85 ^ v30) & 0xFFFF) >> 7];
@@ -610,7 +612,7 @@ export class MISTY1 {
         let v114 = v78 ^ v113 ^ this.Misty1_setup[v112];
         let v115 = v87 ^ this.Misty1Const[(v113 ^ v68) & 0xFFFF] ^ v110 ^ v114 & 127 ^ (v114 << 9);
         let v116 = v85 ^ v22 ^ v110 ^ (v115 | v43);
-        let v117 = (v102 |  readUInt16LE(this.buffer, (67 * 2) - 104)) ^ v101;
+        let v117 = (v102 | readUInt16LE(this.buffer, (67 * 2) - 104)) ^ v101;
         let v118 = ((v116 & readUInt16LE(this.buffer, (63 * 2) - 104)) & 0xFFFF) ^ v115;
         let v119 = (v116 ^ v2) & 127;
         let v120 = v119 ^ this.Misty1Const[((v116 ^ (v2 & 0xFFFF)) & 0xFFFF) >> 7];
@@ -647,12 +649,12 @@ export class MISTY1 {
         v11 = (((v133 | v145) ^ v132) & v139 ^ v133) & 0xFFFF;
         let final = ((v133 | v145) ^ v132) & 0xFFFF;
 
-        var out_blk:Uint8Array|Buffer;
+        var out_blk: Uint8Array | Buffer;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(8);
         } else {
             out_blk = new Uint8Array(8);
-        } 
+        }
         writeUInt16LE(out_blk, ShortSwitch(final), 0);
         writeUInt16LE(out_blk, ShortSwitch(v11), 2);
         writeUInt16LE(out_blk, ShortSwitch(v2), 4);
@@ -671,79 +673,36 @@ export class MISTY1 {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv(iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
-        if (!isBufferOrUint8Array(iv)) {
-            throw Error("IV must be a buffer or UInt8Array");
-        } else {
-            if (iv.length != 8) {
-            throw Error("Enter a vaild 8 byte IV for CBC mode");
+            if (!isBufferOrUint8Array(iv)) {
+                throw Error("IV must be a buffer or UInt8Array");
             } else {
-            this.iv = iv;
-            this.iv_set = true;
+                if (iv.length != 8) {
+                    throw Error("Enter a vaild 8 byte IV for CBC mode");
+                } else {
+                    this.iv = iv;
+                    this.iv_set = true;
+                }
             }
-        }
         } else {
-        throw Error("Enter a vaild 8 byte IV for CBC mode");
+            throw Error("Enter a vaild 8 byte IV for CBC mode");
         }
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padd - ```number```
+     * @param {number} padding - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
-            throw Error("Data must be Buffer or Uint8Array");
-        }
-        const block_size = 8;
-        if (this.key_set != true) {
-        throw Error("Please set key first");
-        }
-        var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
-        if (data.length % block_size != 0) {
-        var to_padd = block_size - (data.length % block_size);
-        if (padd_value == undefined) {
-            padd_value = 0xff;
-        }
-        if (isBuffer(data_in)) {
-            var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xff);
-            data = Buffer.concat([data_in as Buffer, paddbuffer]);
-        } else {
-            data = extendUint8Array(data_in, data.length + to_padd, padd_value);
-        }
-        }
-        for (let index = 0; index < data.length / block_size; index++) {
-        const block = data.subarray((index * block_size), (index + 1) * block_size);
-        const return_block = this.encrypt_block(block);
-        return_buff.push(return_block);
-        }
-        var final_buffer:Buffer|Uint8Array;
-        if (isBuffer(data_in)) {
-        final_buffer = Buffer.concat(return_buff);
-        } else {
-        final_buffer = concatenateUint8Arrays(return_buff);
-        }
-        this.iv_set = false
-        return final_buffer;
-    };
-    /**
-     *
-     * If IV is not set, runs in ECB mode.
-     * If IV was set, runs in CBC mode.
-     *
-     * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @returns ```Buffer``` or ```Uint8Array```
-     */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 8;
@@ -751,12 +710,15 @@ export class MISTY1 {
             throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
+            if (padd_value == undefined) {
+                padd_value = align(data.length, block_size);
+            }
             if (isBuffer(data_in)) {
-                var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
+                var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xff);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
             } else {
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
@@ -764,10 +726,10 @@ export class MISTY1 {
         }
         for (let index = 0; index < data.length / block_size; index++) {
             const block = data.subarray((index * block_size), (index + 1) * block_size);
-            const return_block = this.decrypt_block(block);
+            const return_block = this.encrypt_block(block);
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -776,5 +738,70 @@ export class MISTY1 {
         this.iv_set = false
         return final_buffer;
     };
-    
+    /**
+     * If IV is not set, runs in ECB mode.
+     * 
+     * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
+     *
+     * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
+     * @returns ```Buffer``` or ```Uint8Array```
+     */
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
+            throw Error("Data must be Buffer or Uint8Array");
+        }
+        const block_size = 8;
+        if (this.key_set != true) {
+            throw Error("Please set key first");
+        }
+        var data = data_in;
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
+        if (data.length % block_size != 0) {
+            var to_padd = block_size - (data.length % block_size);
+            if (isBuffer(data_in)) {
+                var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
+                data = Buffer.concat([data_in as Buffer, paddbuffer]);
+            } else {
+                data = extendUint8Array(data_in, data.length + to_padd, padd_value);
+            }
+        }
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
+            const block = data.subarray((index * block_size), (index + 1) * block_size);
+            var return_block = this.decrypt_block(block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
+        }
+        var final_buffer: Buffer | Uint8Array;
+        if (isBuffer(data_in)) {
+            final_buffer = Buffer.concat(return_buff);
+        } else {
+            final_buffer = concatenateUint8Arrays(return_buff);
+        }
+        this.iv_set = false
+        return final_buffer;
+    };
+
 }

@@ -3,7 +3,9 @@ import {
     isBufferOrUint8Array,
     extendUint8Array,
     concatenateUint8Arrays,
-    xor
+    xor,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -55,56 +57,56 @@ import {
  * ```
  */
 export class AES {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
+    private previous_block: any;
 
-    AES_SubBytes(state:Array<number>, sbox:Array<number>):void {
-        for (var i = 0; i < 16; i++){
+    AES_SubBytes(state: Array<number>, sbox: Array<number>): void {
+        for (var i = 0; i < 16; i++) {
             state[i] = sbox[state[i]];
         }
     }
 
-    AES_AddRoundKey(state:Array<number>, rkey:Array<number>):void {
-        for (var i = 0; i < 16; i++){
+    AES_AddRoundKey(state: Array<number>, rkey: Array<number>): void {
+        for (var i = 0; i < 16; i++) {
             state[i] ^= rkey[i];
         }
     }
 
-    AES_ShiftRows(state:Array<number>, shifttab:Array<number>):void {
+    AES_ShiftRows(state: Array<number>, shifttab: Array<number>): void {
         var h = new Array().concat(state);
-        for (var i = 0; i < 16; i++){
+        for (var i = 0; i < 16; i++) {
             state[i] = h[shifttab[i]];
         }
     }
 
-    AES_MixColumns(state:Array<number>):void {
+    AES_MixColumns(state: Array<number>): void {
         for (var i = 0; i < 16; i += 4) {
-        var s0 = state[i + 0], s1 = state[i + 1];
-        var s2 = state[i + 2], s3 = state[i + 3];
-        var h = s0 ^ s1 ^ s2 ^ s3;
-        state[i + 0] ^= h ^ this.AES_xtime[s0 ^ s1];
-        state[i + 1] ^= h ^ this.AES_xtime[s1 ^ s2];
-        state[i + 2] ^= h ^ this.AES_xtime[s2 ^ s3];
-        state[i + 3] ^= h ^ this.AES_xtime[s3 ^ s0];
+            var s0 = state[i + 0], s1 = state[i + 1];
+            var s2 = state[i + 2], s3 = state[i + 3];
+            var h = s0 ^ s1 ^ s2 ^ s3;
+            state[i + 0] ^= h ^ this.AES_xtime[s0 ^ s1];
+            state[i + 1] ^= h ^ this.AES_xtime[s1 ^ s2];
+            state[i + 2] ^= h ^ this.AES_xtime[s2 ^ s3];
+            state[i + 3] ^= h ^ this.AES_xtime[s3 ^ s0];
         }
     }
 
-    AES_MixColumns_Inv(state:Array<number>):void {
+    AES_MixColumns_Inv(state: Array<number>): void {
         for (var i = 0; i < 16; i += 4) {
-        var s0 = state[i + 0], s1 = state[i + 1];
-        var s2 = state[i + 2], s3 = state[i + 3];
-        var h = s0 ^ s1 ^ s2 ^ s3;
-        var xh = this.AES_xtime[h];
-        var h1 = this.AES_xtime[this.AES_xtime[xh ^ s0 ^ s2]] ^ h;
-        var h2 = this.AES_xtime[this.AES_xtime[xh ^ s1 ^ s3]] ^ h;
-        state[i + 0] ^= h1 ^ this.AES_xtime[s0 ^ s1];
-        state[i + 1] ^= h2 ^ this.AES_xtime[s1 ^ s2];
-        state[i + 2] ^= h1 ^ this.AES_xtime[s2 ^ s3];
-        state[i + 3] ^= h2 ^ this.AES_xtime[s3 ^ s0];
+            var s0 = state[i + 0], s1 = state[i + 1];
+            var s2 = state[i + 2], s3 = state[i + 3];
+            var h = s0 ^ s1 ^ s2 ^ s3;
+            var xh = this.AES_xtime[h];
+            var h1 = this.AES_xtime[this.AES_xtime[xh ^ s0 ^ s2]] ^ h;
+            var h2 = this.AES_xtime[this.AES_xtime[xh ^ s1 ^ s3]] ^ h;
+            state[i + 0] ^= h1 ^ this.AES_xtime[s0 ^ s1];
+            state[i + 1] ^= h2 ^ this.AES_xtime[s1 ^ s2];
+            state[i + 2] ^= h1 ^ this.AES_xtime[s2 ^ s3];
+            state[i + 3] ^= h2 ^ this.AES_xtime[s3 ^ s0];
         }
     }
 
@@ -140,20 +142,20 @@ export class AES {
      * 
      * @param {Buffer|Uint8Array} key_data - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key_data:Buffer|Uint8Array):void {
+    set_key(key_data: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key_data)) {
             throw Error("key must be Buffer or Uint8Array");
         }
         var kl = key_data.length, ks, Rcon = 1;
         switch (kl) {
-            case 16: 
-                ks = 16 * (10 + 1); 
+            case 16:
+                ks = 16 * (10 + 1);
                 break;
-            case 24: 
-                ks = 16 * (12 + 1); 
+            case 24:
+                ks = 16 * (12 + 1);
                 break;
-            case 32: 
-                ks = 16 * (14 + 1); 
+            case 32:
+                ks = 16 * (14 + 1);
                 break;
             default:
                 throw Error("Only key lengths of 16, 24 or 32 bytes allowed!");
@@ -164,18 +166,18 @@ export class AES {
         }
         this.key = key;
         for (var i = kl; i < ks; i += 4) {
-        var temp = key.slice(i - 4, i);
+            var temp = key.slice(i - 4, i);
             if (i % kl == 0) {
                 temp = new Array(this.AES_Sbox[temp[1]] ^ Rcon, this.AES_Sbox[temp[2]],
-                this.AES_Sbox[temp[3]], this.AES_Sbox[temp[0]]);
+                    this.AES_Sbox[temp[3]], this.AES_Sbox[temp[0]]);
                 if ((Rcon <<= 1) >= 256)
-                Rcon ^= 0x11b;
+                    Rcon ^= 0x11b;
             }
             else if ((kl > 24) && (i % kl == 16))
                 temp = new Array(
                     this.AES_Sbox[temp[0]], this.AES_Sbox[temp[1]],
                     this.AES_Sbox[temp[2]], this.AES_Sbox[temp[3]]
-                    );
+                );
             for (var j = 0; j < 4; j++)
                 key[i + j] = key[i + j - kl] ^ temp[j];
         }
@@ -185,11 +187,11 @@ export class AES {
         for (var z = 0; z < 256; z++) {
             this.AES_Sbox_Inv[this.AES_Sbox[z]] = z;
         }
-        
-        for (var z = 0; z < 16; z++){
+
+        for (var z = 0; z < 16; z++) {
             this.AES_ShiftRowTab_Inv[this.AES_ShiftRowTab[z]] = z;
         }
-        
+
         for (var z = 0; z < 128; z++) {
             this.AES_xtime[z] = z << 1;
             this.AES_xtime[128 + z] = (z << 1) ^ 0x1b;
@@ -203,7 +205,7 @@ export class AES {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv(iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
             if (!isBufferOrUint8Array(iv)) {
                 throw Error("IV must be a buffer or UInt8Array");
@@ -220,7 +222,7 @@ export class AES {
         }
     };
 
-    encrypt_block(start_chunk:Buffer|Uint8Array):Buffer|Uint8Array {
+    encrypt_block(start_chunk: Buffer | Uint8Array): Buffer | Uint8Array {
         //check if IV is set, if so runs CBC
         let block = start_chunk;
         if (this.iv_set == true) {
@@ -260,10 +262,10 @@ export class AES {
         if (this.iv_set == true) {
             this.iv = block_out;
         }
-        return <unknown> block_out as Buffer|Uint8Array;
+        return <unknown>block_out as Buffer | Uint8Array;
     };
 
-    decrypt_block(start_chunk:Buffer|Uint8Array):Buffer|Uint8Array {
+    decrypt_block(start_chunk: Buffer | Uint8Array): Buffer | Uint8Array {
         let block = start_chunk;
         if (this.iv_set == true) {
             if (this.previous_block != undefined) {
@@ -303,22 +305,24 @@ export class AES {
         }
         var return_buffer = block_out;
         if (this.iv_set == true) {
-            return_buffer = xor(<unknown> block_out as Buffer|Uint8Array, this.iv) as any;
+            return_buffer = xor(<unknown>block_out as Buffer | Uint8Array, this.iv) as any;
         }
-        return <unknown> return_buffer as Buffer|Uint8Array;
+        return <unknown>return_buffer as Buffer | Uint8Array;
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padd - ```number```
+     * @param {number} padding - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -326,12 +330,12 @@ export class AES {
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
@@ -345,7 +349,7 @@ export class AES {
             const return_block = this.encrypt_block(block);
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -356,15 +360,20 @@ export class AES {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -372,10 +381,17 @@ export class AES {
             throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -383,12 +399,23 @@ export class AES {
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
             }
         }
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             const block = data.subarray((index * block_size), (index + 1) * block_size);
-            const return_block = this.decrypt_block(block);
-            return_buff.push(return_block);
+            var return_block = this.decrypt_block(block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {

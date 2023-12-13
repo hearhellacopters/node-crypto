@@ -28,4 +28,6 @@ export declare function BYTE(x: number): number;
 export declare function rotl(value: number, shift: number): number;
 export declare function rotr(value: number, shift: number): number;
 export declare function __PAIR64__(high: number, low: number, x: number): number;
+export declare function align(a: number, n: number): number;
+export declare function removePKCSPadding(buffer: Uint8Array | Buffer, blockSize: number, number?: number): Uint8Array | Buffer;
 //# sourceMappingURL=common.d.ts.map

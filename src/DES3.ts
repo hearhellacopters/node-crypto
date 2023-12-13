@@ -4,6 +4,8 @@ import {
     extendUint8Array,
     concatenateUint8Arrays,
     xor,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -348,15 +350,17 @@ export class DES3{
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padd - ```number```
+     * @param {number} padding - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
+    encrypt(data_in:Buffer|Uint8Array, padding?:number):Buffer|Uint8Array {
         if(!isBufferOrUint8Array(data_in)){
             throw Error("Data must be Buffer or Uint8Array");
         }
@@ -365,12 +369,12 @@ export class DES3{
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
+        var padd_value = padding;
         const return_buff:any[]  = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xff);
@@ -402,14 +406,19 @@ export class DES3{
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
+    decrypt(data_in:Buffer|Uint8Array,remove_padding?:boolean|number):Buffer|Uint8Array {
         if(!isBufferOrUint8Array(data_in)){
             throw Error("Data must be Buffer or Uint8Array");
         }
@@ -418,10 +427,17 @@ export class DES3{
             throw Error("Please set key first");
         }
         var data = data_in;
+        var padd_value:number;
+        if(remove_padding == undefined){
+            padd_value = 0xff;
+        } else if(typeof remove_padding == 'number'){
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
         const return_buff:any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -429,7 +445,7 @@ export class DES3{
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
             }
         }
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             var block = data.subarray((index * block_size), (index + 1) * block_size);
             if (this.iv_set == true) {
                 if (this.previous_block != undefined) {
@@ -443,7 +459,18 @@ export class DES3{
             if (this.iv_set == true) {
                 return_block = xor(return_block, this.iv);
             }
-            return_buff.push(return_block);
+            if(index == (amount-1)){
+                if(remove_padding != undefined){
+                    if(typeof remove_padding == 'number'){
+                        return_block = removePKCSPadding(return_block,block_size,padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block,block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
         }
         var final_buffer:Buffer|Uint8Array;
         if (isBuffer(data_in)) {

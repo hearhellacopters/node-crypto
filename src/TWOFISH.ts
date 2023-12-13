@@ -13,6 +13,8 @@ import {
     BYTE2,
     BYTE1,
     BYTE,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -64,27 +66,27 @@ import {
  * ```
  */
 export class TWOFISH {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
-    private MDS_table:any[] = [];
-    private key0:any;
-    private key1:any;
-    private buffer:any;
-    private final_keys:any;
-    private odd_keys:any;
-    private even_keys:any;
-    private l_key:any;
-    private xor_in :any;
-    private xor_out:any;
-    private block1:any;
-    private block2:any;
-    private block3:any;
-    private block4:any;
-    private keys:any;
+    private previous_block: any;
+    private MDS_table: any[] = [];
+    private key0: any;
+    private key1: any;
+    private buffer: any;
+    private final_keys: any;
+    private odd_keys: any;
+    private even_keys: any;
+    private l_key: any;
+    private xor_in: any;
+    private xor_out: any;
+    private block1: any;
+    private block2: any;
+    private block3: any;
+    private block4: any;
+    private keys: any;
 
     constructor() {
     }
@@ -399,11 +401,11 @@ export class TWOFISH {
     private q0 = this.q_table[0];
     private q1 = this.q_table[1];
 
-    private F():number {
+    private F(): number {
         var x1 = this.key0;
         var x2 = this.key1;
         let x8 = 8;
-        var x11:number, x12:number, x13:number;
+        var x11: number, x12: number, x13: number;
 
         do {
             x11 = HIBYTE(x2);
@@ -426,35 +428,35 @@ export class TWOFISH {
         return (x11 ^ (((x12 << 24) | (x12 << 8)) >>> 0)) >>> 0;
     };
 
-    private H02(y:number, L:number):number {
+    private H02(y: number, L: number): number {
         const L1 = this.key[L + 8];
         const L2 = this.key[L];
         //MDS_table[0][q0[q0[y]^L[ 8]]^L[0]]
         return this.MDS_table[0][this.q0[this.q0[y] ^ L1] ^ L2];
     };
 
-    private H12(y:number, L:number):number {
+    private H12(y: number, L: number): number {
         const L1 = this.key[L + 9];
         const L2 = this.key[L + 1];
         //MDS_table[1][q0[q1[y]^L[ 9]]^L[1]]
         return this.MDS_table[1][this.q0[this.q1[y] ^ L1] ^ L2];
     };
 
-    private H22(y:number, L:number):number {
+    private H22(y: number, L: number): number {
         const L1 = this.key[L + 10];
         const L2 = this.key[L + 2];
         //MDS_table[2][q1[q0[y]^L[10]]^L[2]]
         return this.MDS_table[2][this.q1[this.q0[y] ^ L1] ^ L2];
     };
 
-    private H32(y:number, L:number):number {
+    private H32(y: number, L: number): number {
         const L1 = this.key[L + 11];
         const L2 = this.key[L + 3];
         //MDS_table[3][q1[q1[y]^L[11]]^L[3]]
         return this.MDS_table[3][this.q1[this.q1[y] ^ L1] ^ L2];
     };
 
-    private h (k:number, L:number):number {
+    private h(k: number, L: number): number {
         return this.H02(k, L) ^ this.H12(k, L) ^ this.H22(k, L) ^ this.H32(k, L);
     };
 
@@ -465,7 +467,7 @@ export class TWOFISH {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv(iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
             if (!isBufferOrUint8Array(iv)) {
                 throw Error("IV must be a buffer or UInt8Array");
@@ -489,7 +491,7 @@ export class TWOFISH {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
         }
@@ -566,15 +568,15 @@ export class TWOFISH {
 
         this.l_key = new Uint32Array(40);
 
-        var A:number, B:number, i:number;
+        var A: number, B: number, i: number;
         for (i = 0; i < 40; i += 2) {
             A = this.h(i, 0);
             B = this.h(i + 1, 4);
             B = rotl(B, 8);
             A += B;
             B += A;
-            writeUInt32LE(this.buffer,A >>> 0, i * 4);
-            writeUInt32LE(this.buffer,rotl(B, 9), (i * 4) + 4);
+            writeUInt32LE(this.buffer, A >>> 0, i * 4);
+            writeUInt32LE(this.buffer, rotl(B, 9), (i * 4) + 4);
             this.l_key[i] = A >>> 0;
             this.l_key[i + 1] = rotl(B, 9);
         }
@@ -598,7 +600,7 @@ export class TWOFISH {
         this.key_set = true
     };
 
-    private ENCRYPT_CYCLE (offset:number):void {
+    private ENCRYPT_CYCLE(offset: number): void {
         var keys = this.keys;
         let x8 = (((this.block2[BYTE1(keys[0])] ^ this.block1[BYTE(keys[0])]) >>> 0 ^ this.block3[BYTE2(keys[0])]) >>> 0 ^ this.block4[HIBYTE(keys[0])]) >>> 0;
         let x9 = (((this.block2[BYTE(keys[1])] ^ this.block1[HIBYTE(keys[1])]) >>> 0 ^ this.block3[BYTE1(keys[1])]) >>> 0 ^ this.block4[BYTE2(keys[1])]) >>> 0;
@@ -615,7 +617,7 @@ export class TWOFISH {
         this.keys = keys;
     };
 
-    private DECRYPT_CYCLE(offset:number):void {
+    private DECRYPT_CYCLE(offset: number): void {
         var keys = this.keys;
         let v6 = (4 * offset) | 2;
         let v9 = (((this.block2[BYTE1(keys[0])] ^ this.block1[BYTE(keys[0])]) >>> 0 ^ this.block3[BYTE2(keys[0])]) >>> 0 ^ this.block4[HIBYTE(keys[0])]) >>> 0;
@@ -635,7 +637,7 @@ export class TWOFISH {
         this.keys = keys;
     };
 
-    private encrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private encrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         //check if IV is set, if so runs CBC
         let start_chunk = block;
         if (this.iv_set == true) {
@@ -660,7 +662,7 @@ export class TWOFISH {
         this.ENCRYPT_CYCLE(6);
         this.ENCRYPT_CYCLE(7);
 
-        var out_blk:Buffer|Uint8Array;
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
@@ -678,7 +680,7 @@ export class TWOFISH {
         return out_blk;
     };
 
-    private decrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private decrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         let start_chunk = block;
         if (this.iv_set == true) {
             if (this.previous_block != undefined) {
@@ -705,7 +707,7 @@ export class TWOFISH {
         this.DECRYPT_CYCLE(1);
         this.DECRYPT_CYCLE(0);
 
-        var out_blk:Buffer|Uint8Array;
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
@@ -726,90 +728,117 @@ export class TWOFISH {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padd - ```Number```
+     * @param {Number} padding - ```Number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
-        throw Error("Data must be Buffer or Uint8Array");
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
+            throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
         if (this.key_set != true) {
-        throw Error("Please set key first");
+            throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
-        var to_padd = block_size - (data.length % block_size);
-        if (padd_value == undefined) {
-            padd_value = 0xff;
-        }
-        if (isBuffer(data_in)) {
-            var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
-            data = Buffer.concat([data_in as Buffer, paddbuffer]);
-        } else {
-            data = extendUint8Array(data_in, data.length + to_padd, padd_value);
-        }
+            var to_padd = block_size - (data.length % block_size);
+            if (padd_value == undefined) {
+                padd_value = align(data.length, block_size);
+            }
+            if (isBuffer(data_in)) {
+                var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
+                data = Buffer.concat([data_in as Buffer, paddbuffer]);
+            } else {
+                data = extendUint8Array(data_in, data.length + to_padd, padd_value);
+            }
         }
         for (let index = 0; index < data.length / block_size; index++) {
-        const block = data.subarray((index * block_size), (index + 1) * block_size);
-        const return_block = this.encrypt_block(block);
-        return_buff.push(return_block);
+            const block = data.subarray((index * block_size), (index + 1) * block_size);
+            const return_block = this.encrypt_block(block);
+            return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
-        final_buffer = Buffer.concat(return_buff);
+            final_buffer = Buffer.concat(return_buff);
         } else {
-        final_buffer = concatenateUint8Arrays(return_buff);
+            final_buffer = concatenateUint8Arrays(return_buff);
         }
         this.iv_set = false
         return final_buffer;
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
-        throw Error("Data must be Buffer or Uint8Array");
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
+            throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
         if (this.key_set != true) {
-        throw Error("Please set key first");
+            throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
-        var to_padd = block_size - (data.length % block_size);
-        var padd_value = 0xff;
+            var to_padd = block_size - (data.length % block_size);
+            if (isBuffer(data_in)) {
+                var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
+                data = Buffer.concat([data_in as Buffer, paddbuffer]);
+            } else {
+                data = extendUint8Array(data_in, data.length + to_padd, padd_value);
+            }
+        }
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
+            const block = data.subarray((index * block_size), (index + 1) * block_size);
+            var return_block = this.decrypt_block(block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
+        }
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
-            var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
-            data = Buffer.concat([data_in as Buffer, paddbuffer]);
+            final_buffer = Buffer.concat(return_buff);
         } else {
-            data = extendUint8Array(data_in, data.length + to_padd, padd_value);
-        }
-        }
-        for (let index = 0; index < data.length / block_size; index++) {
-        const block = data.subarray((index * block_size), (index + 1) * block_size);
-        const return_block = this.decrypt_block(block);
-        return_buff.push(return_block);
-        }
-        var final_buffer:Buffer|Uint8Array;
-        if (isBuffer(data_in)) {
-        final_buffer = Buffer.concat(return_buff);
-        } else {
-        final_buffer = concatenateUint8Arrays(return_buff);
+            final_buffer = concatenateUint8Arrays(return_buff);
         }
         this.iv_set = false
         return final_buffer;

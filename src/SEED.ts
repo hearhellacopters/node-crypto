@@ -13,7 +13,9 @@ import {
     BYTE2,
     BYTE1,
     BYTE,
-    __PAIR64__
+    __PAIR64__,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -65,27 +67,27 @@ import {
  * ```
  */
 export class SEED {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
 
-    private previous_block:any;
-    
-    private buffer:any;
-    private l0:any;
-    private l1:any;
-    private r0:any;
-    private r1:any;
-    private t1:any;
-    private t2:any;
-    private t4:any;
-    private t5:any;
-    private t6:any;
-    private t7:any;
-    private t8:any;
-    private t9:any;
-    private t10:any;
+    private previous_block: any;
+
+    private buffer: any;
+    private l0: any;
+    private l1: any;
+    private r0: any;
+    private r1: any;
+    private t1: any;
+    private t2: any;
+    private t4: any;
+    private t5: any;
+    private t6: any;
+    private t7: any;
+    private t8: any;
+    private t9: any;
+    private t10: any;
 
     constructor() {
     }
@@ -240,7 +242,7 @@ export class SEED {
         0xC9D1D819, 0x4C404C0C, 0x83838003, 0x8F838C0F, 0xCEC2CC0E, 0x0B33383B, 0x4A42480A, 0x87B3B437
     ];
 
-    private G(x:number):number {
+    private G(x: number): number {
         return (this.ss0[(x) & 0xFF] ^ this.ss1[((x) >> 8) & 0xFF] ^ this.ss2[((x) >> 16) & 0xFF] ^ this.ss3[((x) >> 24) & 0xFF]) >>> 0;
     };
 
@@ -251,7 +253,7 @@ export class SEED {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv(iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (iv) {
             if (!isBufferOrUint8Array(iv)) {
                 throw Error("IV must be a buffer or UInt8Array");
@@ -275,7 +277,7 @@ export class SEED {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
         }
@@ -308,7 +310,7 @@ export class SEED {
             t_1[0] = this.G(bswap32(t_0[0]));
             t_2[0] = this.G(bswap32(t_4[0]));
             writeUInt32LE(this.buffer, t_1[0], offset);
-            writeUInt32LE(this.buffer, t_2[0], offset+4);
+            writeUInt32LE(this.buffer, t_2[0], offset + 4);
             if ((i & 1) != 0) {
                 t_3[0] = __PAIR64__(key3[0], key2[0], 24);
                 key2[0] = __PAIR64__(key2[0], key3[0], 24)
@@ -320,11 +322,11 @@ export class SEED {
             }
             i++;
             offset += 8;
-        } while ( i != 16 );
+        } while (i != 16);
         this.key_set = true
     };
 
-    private encrypt_block (block:Uint8Array|Buffer):Uint8Array|Buffer {
+    private encrypt_block(block: Uint8Array | Buffer): Uint8Array | Buffer {
         //check if IV is set, if so runs CBC
         let start_chunk = block;
         if (this.iv_set == true) {
@@ -369,9 +371,9 @@ export class SEED {
             this.r0[0] = (this.t10[0] + this.t8[0]) ^ this.t1[0]
             this.r1[0] = this.t10[0] ^ this.t2[0]
             i += 8;
-        } while (i != 128 );
+        } while (i != 128);
 
-        var out_blk:Buffer|Uint8Array;
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
@@ -387,7 +389,7 @@ export class SEED {
         return out_blk;
     };
 
-    private decrypt_block (block:Buffer|Uint8Array):Buffer|Uint8Array {
+    private decrypt_block(block: Buffer | Uint8Array): Buffer | Uint8Array {
         let start_chunk = block;
         if (this.iv_set == true) {
             if (this.previous_block != undefined) {
@@ -433,9 +435,9 @@ export class SEED {
             this.r0[0] = (this.t10[0] + this.t8[0]) ^ this.t1[0];
             this.r1[0] = this.t10[0] ^ this.t2[0];
             i -= 8;
-        } while ( i != -8 )
+        } while (i != -8)
 
-        var out_blk:Buffer|Uint8Array;
+        var out_blk: Buffer | Uint8Array;
         if (isBuffer(block)) {
             out_blk = Buffer.alloc(16);
         } else {
@@ -453,16 +455,18 @@ export class SEED {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padd - ```Number```
+     * @param {Number} padding - ```Number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -470,12 +474,12 @@ export class SEED {
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
@@ -489,7 +493,7 @@ export class SEED {
             const return_block = this.encrypt_block(block);
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {
@@ -500,15 +504,20 @@ export class SEED {
     };
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         const block_size = 16;
@@ -516,10 +525,17 @@ export class SEED {
             throw Error("Please set key first");
         }
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -527,12 +543,23 @@ export class SEED {
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
             }
         }
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             const block = data.subarray((index * block_size), (index + 1) * block_size);
-            const return_block = this.decrypt_block(block);
-            return_buff.push(return_block);
+            var return_block = this.decrypt_block(block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
             final_buffer = Buffer.concat(return_buff);
         } else {

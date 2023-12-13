@@ -4,6 +4,8 @@ import {
     extendUint8Array,
     concatenateUint8Arrays,
     xor,
+    align,
+    removePKCSPadding
 } from './common.js'
 
 /**
@@ -55,12 +57,12 @@ import {
  * ```
  */
 export class CAMELLIA {
-    public key:any;
-    public key_set:boolean = false;
-    public iv:any;
-    public iv_set:boolean = false;
-    
-    private previous_block:any;
+    public key: any;
+    public key_set: boolean = false;
+    public iv: any;
+    public iv_set: boolean = false;
+
+    private previous_block: any;
 
     private MASK8 = 0xFF;
     private initialized = false;
@@ -80,7 +82,7 @@ export class CAMELLIA {
         0x10e527fa, 0xde682d1d,
         0xb05688c2, 0xb3e6c1fd
     ]);
-    
+
     private SBOX1_1110 = new Uint32Array([
         0x70707000, 0x82828200, 0x2c2c2c00, 0xececec00, 0xb3b3b300, 0x27272700,
         0xc0c0c000, 0xe5e5e500, 0xe4e4e400, 0x85858500, 0x57575700, 0x35353500,
@@ -126,7 +128,7 @@ export class CAMELLIA {
         0x43434300, 0xc1c1c100, 0x15151500, 0xe3e3e300, 0xadadad00, 0xf4f4f400,
         0x77777700, 0xc7c7c700, 0x80808000, 0x9e9e9e00
     ]);
-    
+
     private SBOX4_4404 = new Uint32Array([
         0x70700070, 0x2c2c002c, 0xb3b300b3, 0xc0c000c0, 0xe4e400e4, 0x57570057,
         0xeaea00ea, 0xaeae00ae, 0x23230023, 0x6b6b006b, 0x45450045, 0xa5a500a5,
@@ -172,7 +174,7 @@ export class CAMELLIA {
         0x38380038, 0xa4a400a4, 0x28280028, 0x7b7b007b, 0xc9c900c9, 0xc1c100c1,
         0xe3e300e3, 0xf4f400f4, 0xc7c700c7, 0x9e9e009e
     ]);
-    
+
     private SBOX2_0222 = new Uint32Array([
         0x00e0e0e0, 0x00050505, 0x00585858, 0x00d9d9d9, 0x00676767, 0x004e4e4e,
         0x00818181, 0x00cbcbcb, 0x00c9c9c9, 0x000b0b0b, 0x00aeaeae, 0x006a6a6a,
@@ -218,7 +220,7 @@ export class CAMELLIA {
         0x00868686, 0x00838383, 0x002a2a2a, 0x00c7c7c7, 0x005b5b5b, 0x00e9e9e9,
         0x00eeeeee, 0x008f8f8f, 0x00010101, 0x003d3d3d
     ]);
-    
+
     private SBOX3_3033 = new Uint32Array([
         0x38003838, 0x41004141, 0x16001616, 0x76007676, 0xd900d9d9, 0x93009393,
         0x60006060, 0xf200f2f2, 0x72007272, 0xc200c2c2, 0xab00abab, 0x9a009a9a,
@@ -264,14 +266,14 @@ export class CAMELLIA {
         0xa100a1a1, 0xe000e0e0, 0x8a008a8a, 0xf100f1f1, 0xd600d6d6, 0x7a007a7a,
         0xbb00bbbb, 0xe300e3e3, 0x40004040, 0x4f004f4f
     ]);
-    
-    private rightRotate(x:number, s:number):number {
+
+    private rightRotate(x: number, s: number): number {
         return (((x) >>> (s)) + ((x) << (32 - s)));
     }
-    private leftRotate(x:number, s:number):number {
+    private leftRotate(x: number, s: number): number {
         return (((x) << (s)) + ((x) >>> (32 - s)));
     }
-    private roldq(rot:number, ki:Uint32Array, ioff:number, ko:Uint32Array, ooff:number):void {
+    private roldq(rot: number, ki: Uint32Array, ioff: number, ko: Uint32Array, ooff: number): void {
         ko[0 + ooff] = (ki[0 + ioff] << rot) | (ki[1 + ioff] >>> (32 - rot));
         ko[1 + ooff] = (ki[1 + ioff] << rot) | (ki[2 + ioff] >>> (32 - rot));
         ko[2 + ooff] = (ki[2 + ioff] << rot) | (ki[3 + ioff] >>> (32 - rot));
@@ -281,7 +283,7 @@ export class CAMELLIA {
         ki[2 + ioff] = ko[2 + ooff];
         ki[3 + ioff] = ko[3 + ooff];
     }
-    private decroldq(rot:number, ki:Uint32Array, ioff:number, ko:Uint32Array, ooff:number):void {
+    private decroldq(rot: number, ki: Uint32Array, ioff: number, ko: Uint32Array, ooff: number): void {
         ko[2 + ooff] = (ki[0 + ioff] << rot) | (ki[1 + ioff] >>> (32 - rot));
         ko[3 + ooff] = (ki[1 + ioff] << rot) | (ki[2 + ioff] >>> (32 - rot));
         ko[0 + ooff] = (ki[2 + ioff] << rot) | (ki[3 + ioff] >>> (32 - rot));
@@ -291,7 +293,7 @@ export class CAMELLIA {
         ki[2 + ioff] = ko[0 + ooff];
         ki[3 + ioff] = ko[1 + ooff];
     }
-    private roldqo32(rot:number, ki:Uint32Array, ioff:number, ko:Uint32Array, ooff:number):void {
+    private roldqo32(rot: number, ki: Uint32Array, ioff: number, ko: Uint32Array, ooff: number): void {
         ko[0 + ooff] = (ki[1 + ioff] << (rot - 32)) | (ki[2 + ioff] >>> (64 - rot));
         ko[1 + ooff] = (ki[2 + ioff] << (rot - 32)) | (ki[3 + ioff] >>> (64 - rot));
         ko[2 + ooff] = (ki[3 + ioff] << (rot - 32)) | (ki[0 + ioff] >>> (64 - rot));
@@ -301,7 +303,7 @@ export class CAMELLIA {
         ki[2 + ioff] = ko[2 + ooff];
         ki[3 + ioff] = ko[3 + ooff];
     }
-    private decroldqo32(rot:number, ki:Uint32Array, ioff:number, ko:Uint32Array, ooff:number):void {
+    private decroldqo32(rot: number, ki: Uint32Array, ioff: number, ko: Uint32Array, ooff: number): void {
         ko[2 + ooff] = (ki[1 + ioff] << (rot - 32)) | (ki[2 + ioff] >>> (64 - rot));
         ko[3 + ooff] = (ki[2 + ioff] << (rot - 32)) | (ki[3 + ioff] >>> (64 - rot));
         ko[0 + ooff] = (ki[3 + ioff] << (rot - 32)) | (ki[0 + ioff] >>> (64 - rot));
@@ -311,7 +313,7 @@ export class CAMELLIA {
         ki[2 + ioff] = ko[0 + ooff];
         ki[3 + ioff] = ko[1 + ooff];
     }
-    private bytes2int(src:Uint32Array|Uint8Array, offset:number):number {
+    private bytes2int(src: Uint32Array | Uint8Array, offset: number): number {
         var word = new Uint32Array(1);
         for (var i = 0; i < 4; i++) {
             {
@@ -322,7 +324,7 @@ export class CAMELLIA {
         return word[0];
     }
 
-    private int2bytes(word:number, dst:Uint32Array|Uint8Array, offset:number):void {
+    private int2bytes(word: number, dst: Uint32Array | Uint8Array, offset: number): void {
         for (var i = 0; i < 4; i++) {
             {
                 dst[(3 - i) + offset] = (word | 0);
@@ -332,13 +334,13 @@ export class CAMELLIA {
         }
     }
 
-    private camelliaF2(s:Uint32Array, skey:Uint32Array, keyoff:number):void {
-        var t1:number;
-        var t2:number;
-        var u:number;
-        var v:number;
+    private camelliaF2(s: Uint32Array, skey: Uint32Array, keyoff: number): void {
+        var t1: number;
+        var t2: number;
+        var u: number;
+        var v: number;
         t1 = s[0] ^ skey[0 + keyoff];
-        u =  this.SBOX4_4404[t1 & this.MASK8];
+        u = this.SBOX4_4404[t1 & this.MASK8];
         u ^= this.SBOX3_3033[(t1 >>> 8) & this.MASK8];
         u ^= this.SBOX2_0222[(t1 >>> 16) & this.MASK8];
         u ^= this.SBOX1_1110[(t1 >>> 24) & this.MASK8];
@@ -363,14 +365,14 @@ export class CAMELLIA {
         s[1] ^= u ^ v ^ this.rightRotate(u, 8);
     }
 
-    private camelliaFLs(s:Uint32Array|Uint8Array, fkey:Uint32Array|Uint8Array, keyoff:number):void {
+    private camelliaFLs(s: Uint32Array | Uint8Array, fkey: Uint32Array | Uint8Array, keyoff: number): void {
         s[1] ^= this.leftRotate(s[0] & fkey[0 + keyoff], 1);
         s[0] ^= fkey[1 + keyoff] | s[1];
         s[2] ^= fkey[3 + keyoff] | s[3];
         s[3] ^= this.leftRotate(fkey[2 + keyoff] & s[2], 1);
     }
 
-    private setkey(forEncryption:boolean, key:Uint32Array):void {
+    private setkey(forEncryption: boolean, key: Uint32Array): void {
         var k = new Uint32Array(8);
         var ka = new Uint32Array(4);
         var kb = new Uint32Array(4);
@@ -550,7 +552,7 @@ export class CAMELLIA {
      * 
      * @param {Buffer|Uint8Array} iv - ```Buffer``` or ```Uint8Array```
      */
-    set_iv(iv:Buffer|Uint8Array):void {
+    set_iv(iv: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(iv)) {
             throw Error("iv must be Buffer or Uint8Array");
         }
@@ -568,7 +570,7 @@ export class CAMELLIA {
      * 
      * @param {Buffer|Uint8Array} key - ```Buffer``` or ```Uint8Array```
      */
-    set_key(key:Buffer|Uint8Array):void {
+    set_key(key: Buffer | Uint8Array): void {
         if (!isBufferOrUint8Array(key)) {
             throw Error("key must be Buffer or Uint8Array");
         }
@@ -590,16 +592,18 @@ export class CAMELLIA {
     }
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padd - ```number```
+     * @param {number} padding - ```number```
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in:Buffer|Uint8Array, padd?:number) {
-        if(!isBufferOrUint8Array(data_in)){
+    encrypt(data_in: Buffer | Uint8Array, padding?: number) {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         if (this.key_set != true) {
@@ -608,12 +612,12 @@ export class CAMELLIA {
         this.setkey(true, this.key);
         const block_size = 16;
         var data = data_in;
-        var padd_value = padd;
-        const return_buff:any[] = [];
+        var padd_value = padding;
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
             if (padd_value == undefined) {
-                padd_value = 0xff;
+                padd_value = align(data.length, block_size);
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
@@ -633,26 +637,31 @@ export class CAMELLIA {
             }
             return_buff.push(return_block);
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
-          final_buffer = Buffer.concat(return_buff);
+            final_buffer = Buffer.concat(return_buff);
         } else {
-          final_buffer = concatenateUint8Arrays(return_buff);
+            final_buffer = concatenateUint8Arrays(return_buff);
         }
         this.iv_set = false
         return final_buffer;
     }
 
     /**
-     *
      * If IV is not set, runs in ECB mode.
+     * 
      * If IV was set, runs in CBC mode.
+     * 
+     * If remove_padding is ``number``, will check the last block and remove padded number.
+     * 
+     * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
+     * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in:Buffer|Uint8Array):Buffer|Uint8Array {
-        if(!isBufferOrUint8Array(data_in)){
+    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+        if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
         if (this.key_set != true) {
@@ -661,10 +670,17 @@ export class CAMELLIA {
         this.setkey(false, this.key);
         const block_size = 16;
         var data = data_in;
-        const return_buff:any[] = [];
+        var padd_value: number;
+        if (remove_padding == undefined) {
+            padd_value = 0xff;
+        } else if (typeof remove_padding == 'number') {
+            padd_value = remove_padding & 0xFF;
+        } else {
+            padd_value = align(data.length, block_size);
+        }
+        const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            var padd_value = 0xff;
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xFF);
                 data = Buffer.concat([data_in as Buffer, paddbuffer]);
@@ -672,7 +688,7 @@ export class CAMELLIA {
                 data = extendUint8Array(data_in, data.length + to_padd, padd_value);
             }
         }
-        for (let index = 0; index < data.length / block_size; index++) {
+        for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             var block = data.subarray((index * block_size), (index + 1) * block_size);
             if (this.iv_set == true) {
                 if (this.previous_block != undefined) {
@@ -684,19 +700,30 @@ export class CAMELLIA {
             if (this.iv_set == true) {
                 return_block = xor(return_block, this.iv);
             }
-            return_buff.push(return_block);
+            if (index == (amount - 1)) {
+                if (remove_padding != undefined) {
+                    if (typeof remove_padding == 'number') {
+                        return_block = removePKCSPadding(return_block, block_size, padd_value);
+                    } else {
+                        return_block = removePKCSPadding(return_block, block_size);
+                    }
+                }
+                return_buff.push(return_block);
+            } else {
+                return_buff.push(return_block);
+            }
         }
-        var final_buffer:Buffer|Uint8Array;
+        var final_buffer: Buffer | Uint8Array;
         if (isBuffer(data_in)) {
-          final_buffer = Buffer.concat(return_buff);
+            final_buffer = Buffer.concat(return_buff);
         } else {
-          final_buffer = concatenateUint8Arrays(return_buff);
+            final_buffer = concatenateUint8Arrays(return_buff);
         }
         this.iv_set = false
         return final_buffer;
     }
 
-    private processBlock(__in:Buffer|Uint8Array):Buffer|Uint8Array {
+    private processBlock(__in: Buffer | Uint8Array): Buffer | Uint8Array {
         if (!this.initialized) {
             throw Error("Camellia is not initialized");
         }
@@ -708,7 +735,7 @@ export class CAMELLIA {
         }
     }
 
-    private processBlock128(__in:Buffer|Uint8Array):Buffer|Uint8Array {
+    private processBlock128(__in: Buffer | Uint8Array): Buffer | Uint8Array {
         for (var i = 0; i < 4; i++) {
             {
                 this.state[i] = this.bytes2int(__in as Uint8Array, (i * 4));
@@ -731,9 +758,9 @@ export class CAMELLIA {
         this.state[3] ^= this.kw[5];
         this.state[0] ^= this.kw[6];
         this.state[1] ^= this.kw[7];
-        var out:any
-        if(isBuffer(__in)){
-            out = Buffer.alloc(16); 
+        var out: any
+        if (isBuffer(__in)) {
+            out = Buffer.alloc(16);
         } else {
             out = new Uint8Array(16);
         }
@@ -744,7 +771,7 @@ export class CAMELLIA {
         return out;
     }
 
-    private processBlock192or256(__in:Buffer|Uint8Array):Buffer|Uint8Array {
+    private processBlock192or256(__in: Buffer | Uint8Array): Buffer | Uint8Array {
         for (var i = 0; i < 4; i++) {
             {
                 this.state[i] = this.bytes2int(__in, (i * 4));
@@ -771,9 +798,9 @@ export class CAMELLIA {
         this.state[3] ^= this.kw[5];
         this.state[0] ^= this.kw[6];
         this.state[1] ^= this.kw[7];
-        var out:any
-        if(isBuffer(__in)){
-            out = Buffer.alloc(16); 
+        var out: any
+        if (isBuffer(__in)) {
+            out = Buffer.alloc(16);
         } else {
             out = new Uint8Array(16);
         }
