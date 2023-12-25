@@ -1,22 +1,168 @@
-import {
-    isBuffer,
-    isBufferOrUint8Array,
-    extendUint8Array,
-    concatenateUint8Arrays,
-    xor,
-    readUInt32LE,
-    writeUInt32LE,
-    xor_switch,
-    bswap32,
-    bswap64,
-    reverse64,
-    HIBYTE,
-    BYTE2,
-    BYTE1,
-    BYTE,
-    align,
-    removePKCSPadding
-} from './common.js'
+function BYTE(x: number): number {
+    return x & 0xFF
+}
+
+function BYTE1(x: number): number {
+    return (x >> 8) & 0xFF
+}
+
+function BYTE2(x: number): number {
+    return (x >> 16) & 0xFF
+}
+
+function HIBYTE(x: number): number {
+    return (x >> 24) & 0xFF
+}
+
+function reverse64(x: Uint8Array | Buffer): Uint8Array | Buffer {
+    var new_buffer = new Uint8Array([x[7], x[6], x[5], x[4], x[3], x[2], x[1], x[0]])
+    if (isBuffer(x)) {
+        new_buffer = Buffer.from([x[7], x[6], x[5], x[4], x[3], x[2], x[1], x[0]]);
+    }
+    return new_buffer
+}
+
+function bswap64(x: Uint8Array | Buffer): Uint8Array | Buffer {
+    var new_buffer = new Uint8Array([x[3], x[2], x[1], x[0], x[7], x[6], x[5], x[4]])
+    if (isBuffer(x)) {
+        new_buffer = Buffer.from([x[3], x[2], x[1], x[0], x[7], x[6], x[5], x[4]]);
+    }
+    return new_buffer
+}
+
+function bswap32(value: number): number {
+    return (((value & 0xff) << 24) |
+        ((value & 0xff00) << 8) |
+        ((value >> 8) & 0xff00) |
+        ((value >> 24) & 0xff)) >>> 0;
+}
+
+function xor_switch(x: Uint8Array | Buffer, hex2: Uint8Array | Buffer): Uint8Array | Buffer {
+    var buf1 = new Uint8Array([x[3], x[2], x[1], x[0], x[7], x[6], x[5], x[4]])
+    var buf2 = hex2
+    if (isBuffer(x)) {
+        buf1 = Buffer.from([x[3], x[2], x[1], x[0], x[7], x[6], x[5], x[4]]);
+        buf2 = Buffer.from(hex2);
+    }
+    let number = -1
+    const bufResult = buf1.map((b: number) => {
+        if (number != buf2.length - 1) {
+            number = number + 1
+        } else {
+            number = 0
+        }
+        return b ^ buf2[number]
+    });
+    return bufResult;
+}
+
+function writeUInt32LE(array: Uint8Array | Buffer, value: number, index: number): void {
+    array[index] = value & 0xFF;
+    array[index + 1] = (value >> 8) & 0xFF;
+    array[index + 2] = (value >> 16) & 0xFF;
+    array[index + 3] = (value >> 24) & 0xFF;
+}
+
+function readUInt32LE(array: Uint8Array | Buffer, index: number): number {
+    return (((array[index + 3] & 0xFF) << 24) |
+        ((array[index + 2] & 0xFF) << 16) |
+        ((array[index + 1] & 0xFF) << 8) |
+        (array[index] & 0xFF)
+    ) >>> 0;
+}
+
+function isBufferOrUint8Array(obj: any): boolean {
+    return obj instanceof Uint8Array || (typeof Buffer !== 'undefined' && obj instanceof Buffer);
+}
+
+function isBuffer(obj: any): boolean {
+    return (typeof Buffer !== 'undefined' && obj instanceof Buffer);
+}
+
+function extendUint8Array(array: Uint8Array, newLength: number, padValue: number): Uint8Array {
+    const newArray = new Uint8Array(newLength);
+    newArray.set(array);
+
+    for (let i = array.length; i < newLength; i++) {
+        newArray[i] = padValue;
+    }
+
+    return newArray;
+}
+
+function concatenateUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+    const totalLength = arrays.reduce((length, array) => length + array.length, 0);
+    const concatenatedArray = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (let i = 0; i < arrays.length; i++) {
+        concatenatedArray.set(arrays[i], offset);
+        offset += arrays[i].length;
+    }
+
+    return concatenatedArray;
+}
+
+function xor(buf1: Uint8Array | Buffer, buf2: Uint8Array | Buffer): Uint8Array | Buffer {
+    let number = -1
+    const bufResult = buf1.map((b) => {
+        if (number != buf2.length - 1) {
+            number = number + 1
+        } else {
+            number = 0
+        }
+        return b ^ buf2[number]
+    });
+    return bufResult;
+}
+
+function align(a: number, n: number): number {
+    var a = a % n;
+    if (a) {
+        return (n - a);
+    } else {
+        return 0;
+    }
+}
+
+function removePKCSPadding(buffer: Uint8Array | Buffer, blockSize: number, number?: number): Uint8Array | Buffer {
+    if (buffer.length % blockSize !== 0) {
+        return buffer;
+    }
+
+    const lastByte = buffer[buffer.length - 1];
+    const paddingSize = lastByte;
+
+    // if number supplied padding number
+    if (number != undefined) {
+        if (lastByte != number) {
+            return buffer;
+        } else {
+            var len = buffer.length;
+            for (let i = buffer.length - 1; i >= buffer.length; i--) {
+                if (buffer[i] == number) {
+                    len--;
+                }
+            }
+            return buffer.subarray(0, len);
+        }
+    }
+
+    if (paddingSize > blockSize) {
+
+        return buffer;
+
+    } else {
+
+        for (let i = buffer.length - 1; i >= buffer.length - paddingSize; i--) {
+            if (buffer[i] !== paddingSize) {
+                return buffer;
+            }
+        }
+
+        return buffer.subarray(0, buffer.length - paddingSize);
+    }
+}
 
 /**
  * CAST128 encryption.

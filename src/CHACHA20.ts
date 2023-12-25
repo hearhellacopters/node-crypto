@@ -1,12 +1,95 @@
-import {
-    isBuffer,
-    isBufferOrUint8Array,
-    extendUint8Array,
-    concatenateUint8Arrays,
-    xor,
-    align,
-    removePKCSPadding
-} from './common.js'
+function isBufferOrUint8Array(obj: any): boolean {
+    return obj instanceof Uint8Array || (typeof Buffer !== 'undefined' && obj instanceof Buffer);
+}
+
+function isBuffer(obj: any): boolean {
+    return (typeof Buffer !== 'undefined' && obj instanceof Buffer);
+}
+
+function extendUint8Array(array: Uint8Array, newLength: number, padValue: number): Uint8Array {
+    const newArray = new Uint8Array(newLength);
+    newArray.set(array);
+
+    for (let i = array.length; i < newLength; i++) {
+        newArray[i] = padValue;
+    }
+
+    return newArray;
+}
+
+function concatenateUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+    const totalLength = arrays.reduce((length, array) => length + array.length, 0);
+    const concatenatedArray = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (let i = 0; i < arrays.length; i++) {
+        concatenatedArray.set(arrays[i], offset);
+        offset += arrays[i].length;
+    }
+
+    return concatenatedArray;
+}
+
+function xor(buf1: Uint8Array | Buffer, buf2: Uint8Array | Buffer): Uint8Array | Buffer {
+    let number = -1
+    const bufResult = buf1.map((b) => {
+        if (number != buf2.length - 1) {
+            number = number + 1
+        } else {
+            number = 0
+        }
+        return b ^ buf2[number]
+    });
+    return bufResult;
+}
+
+function align(a: number, n: number): number {
+    var a = a % n;
+    if (a) {
+        return (n - a);
+    } else {
+        return 0;
+    }
+}
+
+function removePKCSPadding(buffer: Uint8Array | Buffer, blockSize: number, number?: number): Uint8Array | Buffer {
+    if (buffer.length % blockSize !== 0) {
+        return buffer;
+    }
+
+    const lastByte = buffer[buffer.length - 1];
+    const paddingSize = lastByte;
+
+    // if number supplied padding number
+    if (number != undefined) {
+        if (lastByte != number) {
+            return buffer;
+        } else {
+            var len = buffer.length;
+            for (let i = buffer.length - 1; i >= buffer.length; i--) {
+                if (buffer[i] == number) {
+                    len--;
+                }
+            }
+            return buffer.subarray(0, len);
+        }
+    }
+
+    if (paddingSize > blockSize) {
+
+        return buffer;
+
+    } else {
+
+        for (let i = buffer.length - 1; i >= buffer.length - paddingSize; i--) {
+            if (buffer[i] !== paddingSize) {
+                return buffer;
+            }
+        }
+
+        return buffer.subarray(0, buffer.length - paddingSize);
+    }
+}
 
 /**
  * CHACHA20 encryption.

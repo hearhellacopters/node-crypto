@@ -1,18 +1,19 @@
 {
   "name": "encryption-for-node",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Portable Crypto libraries for Node and Browsers",
-  "module": "lib/esm/index.mjs",
-  "main": "lib/cjs/index.js",
+  "module": "lib/esm/indexm.mjs",
+  "main": "lib/cjs/index.cjs",
   "type": "module",
   "files": [
     "lib"
   ],
   "scripts": {
     "clean": "rmdir /S /Q lib",
-    "build": "npm run clean && npm run build:esm && npm run move && npm run build:cjs",
+    "build": "npm run clean && npm run build:esm && npm run movem && npm run build:cjs && npm run movec",
     "build:esm": "tsc --moduleResolution NodeNext --module NodeNext --outDir lib/esm",
-    "move": "cd ./lib/esm/ && ren index.js index.mjs && cd ../../",
+    "movem": "cd ./lib/esm/ && ren *.js *.mjs && cd ../../",
+    "movec": "cd ./lib/cjs/ && ren *.js *.cjs && cd ../../",
     "build:cjs": "tsc --moduleResolution node --module commonjs --outDir lib/cjs",
     "prepack": ""
   },
@@ -22,8 +23,8 @@
   },
   "exports": {
     ".": {
-      "import": "./lib/esm/index.mjs",
-      "require": "./lib/cjs/index.js"
+      "import": "./lib/esm/indexm.mjs",
+      "require": "./lib/cjs/index.cjs"
     },
     "./*": "./*"
   },
