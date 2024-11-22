@@ -86,42 +86,21 @@ function align(a: number, n: number): number {
     }
 }
 
-function removePKCSPadding(buffer: Uint8Array | Buffer, blockSize: number, number?: number): Uint8Array | Buffer {
-    if (buffer.length % blockSize !== 0) {
-        return buffer;
-    }
-
+function removePKCSPadding(buffer: Uint8Array | Buffer, number: number, PKCS: boolean | number = false): Uint8Array | Buffer {
     const lastByte = buffer[buffer.length - 1];
-    const paddingSize = lastByte;
-
-    // if number supplied padding number
-    if (number != undefined) {
-        if (lastByte != number) {
-            return buffer;
-        } else {
-            var len = buffer.length;
-            for (let i = buffer.length - 1; i >= buffer.length; i--) {
-                if (buffer[i] == number) {
-                    len--;
-                }
-            }
-            return buffer.subarray(0, len);
-        }
-    }
-
-    if (paddingSize > blockSize) {
-
+    if (PKCS == true) {
+        return buffer.subarray(0, buffer.length - lastByte);
+    } else 
+    if (lastByte != number) {
         return buffer;
-
     } else {
-
-        for (let i = buffer.length - 1; i >= buffer.length - paddingSize; i--) {
-            if (buffer[i] !== paddingSize) {
-                return buffer;
+        var len = buffer.length;
+        for (let i = buffer.length - 1; i > 0; i--) {
+            if (buffer[i] == number) {
+                len--;
             }
         }
-
-        return buffer.subarray(0, buffer.length - paddingSize);
+        return buffer.subarray(0, len);
     }
 }
 
@@ -684,10 +663,10 @@ export class BLOWFISH {
      * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padding - ```number```
+     * @param {number} padding - ```number``` defaults to 0 for PKCS or can use a value
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array {
+    encrypt(data_in: Buffer | Uint8Array, padding:number = 0): Buffer | Uint8Array {
         if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
@@ -700,8 +679,8 @@ export class BLOWFISH {
         const return_buff: any[] = [];
         if (data.length % block_size != 0) {
             var to_padd = block_size - (data.length % block_size);
-            if (padd_value == undefined) {
-                padd_value = align(data.length, block_size);
+            if (padding == 0) {
+                padd_value = to_padd;
             }
             if (isBuffer(data_in)) {
                 var paddbuffer = Buffer.alloc(to_padd, padd_value & 0xff);
@@ -724,6 +703,7 @@ export class BLOWFISH {
         this.iv_set = false
         return final_buffer;
     };
+    
     /**
      * If IV is not set, runs in ECB mode.
      * 
@@ -737,7 +717,7 @@ export class BLOWFISH {
      * @param {boolean|number} remove_padding - Will check the last block and remove padded ``number``. Will remove PKCS if ``true``
      * @returns ```Buffer``` or ```Uint8Array```
      */
-    decrypt(data_in: Buffer | Uint8Array, remove_padding?: boolean | number): Buffer | Uint8Array {
+    decrypt(data_in: Buffer | Uint8Array, remove_padding: boolean | number = true): Buffer | Uint8Array {
         if (!isBufferOrUint8Array(data_in)) {
             throw Error("Data must be Buffer or Uint8Array");
         }
@@ -746,13 +726,9 @@ export class BLOWFISH {
             throw Error("Please set key first");
         }
         var data = data_in;
-        var padd_value: number;
-        if (remove_padding == undefined) {
-            padd_value = 0xff;
-        } else if (typeof remove_padding == 'number') {
+        var padd_value = align(data.length, block_size);
+        if (typeof remove_padding == 'number') {
             padd_value = remove_padding & 0xFF;
-        } else {
-            padd_value = align(data.length, block_size);
         }
         const return_buff: any[] = [];
         if (data.length % block_size != 0) {
@@ -767,14 +743,8 @@ export class BLOWFISH {
         for (let index = 0, amount = Math.ceil(data.length / block_size); index < amount; index++) {
             const block = data.subarray((index * block_size), (index + 1) * block_size);
             var return_block = this.decrypt_block(block);
-            if (index == (amount - 1)) {
-                if (remove_padding != undefined) {
-                    if (typeof remove_padding == 'number') {
-                        return_block = removePKCSPadding(return_block, block_size, padd_value);
-                    } else {
-                        return_block = removePKCSPadding(return_block, block_size);
-                    }
-                }
+            if ((remove_padding != false ) && (index == (amount - 1))) {
+                return_block = removePKCSPadding(return_block, padd_value, remove_padding);
                 return_buff.push(return_block);
             } else {
                 return_buff.push(return_block);

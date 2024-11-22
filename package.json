@@ -1,6 +1,6 @@
 {
   "name": "encryption-for-node",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Portable Crypto libraries for Node and Browsers",
   "module": "lib/esm/indexm.mjs",
   "main": "lib/cjs/index.cjs",

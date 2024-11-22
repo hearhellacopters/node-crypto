@@ -101,7 +101,7 @@ export declare class CAMELLIA {
      * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {number} padding - ```number```
+     * @param {number} padding - ```number``` defaults to 0 for PKCS or can use a value
      * @returns ```Buffer``` or ```Uint8Array```
      */
     encrypt(data_in: Buffer | Uint8Array, padding?: number): Uint8Array | Buffer;

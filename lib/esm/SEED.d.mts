@@ -100,7 +100,7 @@ export declare class SEED {
      * If padding number is not set, uses PKCS padding.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padding - ```Number```
+     * @param {number} padding - ```number``` defaults to 0 for PKCS or can use a value
      * @returns ```Buffer``` or ```Uint8Array```
      */
     encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array;

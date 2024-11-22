@@ -112,7 +112,7 @@ export declare class TWOFISH {
      * If remove_padding is ``true``, will remove PKCS padding on last block.
      *
      * @param {Buffer|Uint8Array} data_in - ```Buffer``` or ```Uint8Array```
-     * @param {Number} padding - ```Number```
+     * @param {number} padding - ```number``` defaults to 0 for PKCS or can use a value
      * @returns ```Buffer``` or ```Uint8Array```
      */
     encrypt(data_in: Buffer | Uint8Array, padding?: number): Buffer | Uint8Array;
